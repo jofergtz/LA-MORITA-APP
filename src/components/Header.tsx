@@ -358,15 +358,17 @@ export default function Header({
               </button>
             </div>
 
-            {/* Quick Publish button */}
-            <button
-              id="btn-publish-quick"
-              onClick={onOpenPublish}
-              className="flex items-center justify-center p-1.5 sm:px-3 sm:py-1.5 bg-morita-mulberry hover:bg-morita-mulberry-dark text-white rounded-lg text-xs font-semibold shadow-xs transition-colors cursor-pointer shrink-0"
-            >
-              <PlusCircle className="h-4 w-4 shrink-0" />
-              <span className="hidden sm:inline ml-1">Publicar</span>
-            </button>
+            {/* Quick Publish button - Only for registered accounts */}
+            {currentUser.id !== 'guest' && (
+              <button
+                id="btn-publish-quick"
+                onClick={onOpenPublish}
+                className="flex items-center justify-center p-1.5 sm:px-3 sm:py-1.5 bg-morita-mulberry hover:bg-morita-mulberry-dark text-white rounded-lg text-xs font-semibold shadow-xs transition-colors cursor-pointer shrink-0"
+              >
+                <PlusCircle className="h-4 w-4 shrink-0" />
+                <span className="hidden sm:inline ml-1">Publicar</span>
+              </button>
+            )}
 
           </div>
         </div>

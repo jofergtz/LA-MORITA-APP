@@ -25,9 +25,9 @@ export default function InstallPrompt() {
       return;
     }
 
-    // 2. Check if user dismissed prompt during this session
-    const isDismissed = sessionStorage.getItem('morita_install_prompt_dismissed');
-    if (isDismissed === 'true') {
+    // 2. Check if user dismissed prompt previously
+    const isDismissed = localStorage.getItem('morita_install_prompt_dismissed') === 'true';
+    if (isDismissed) {
       return;
     }
 
@@ -100,7 +100,7 @@ export default function InstallPrompt() {
 
   const handleDismiss = () => {
     setIsVisible(false);
-    sessionStorage.setItem('morita_install_prompt_dismissed', 'true');
+    localStorage.setItem('morita_install_prompt_dismissed', 'true');
   };
 
   if (!isVisible || isInstalled) return null;
@@ -220,7 +220,7 @@ export default function InstallPrompt() {
               onClick={() => {
                 setShowIOSGuide(false);
                 setIsVisible(false);
-                sessionStorage.setItem('morita_install_prompt_dismissed', 'true');
+                localStorage.setItem('morita_install_prompt_dismissed', 'true');
               }}
               className="w-full mt-4 py-2.5 bg-morita-mulberry hover:bg-morita-mulberry/90 text-white font-bold text-xs rounded-xl shadow-md transition-all flex items-center justify-center space-x-2"
             >

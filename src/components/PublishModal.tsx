@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { User, PublicationType, CategoryType, Publication } from '../types';
-import { X, Image, MapPin, Clock, Sparkles, HelpCircle, Check, Map, Search, ExternalLink, Camera, Upload, Link, RefreshCw } from 'lucide-react';
+import { X, Image, MapPin, Clock, Sparkles, HelpCircle, Check, Map, Search, ExternalLink, Camera, Upload, Link, RefreshCw, ShieldAlert } from 'lucide-react';
 
 interface PublishModalProps {
   isOpen: boolean;
@@ -288,6 +288,33 @@ export default function PublishModal({ isOpen, onClose, currentUser, publication
   };
 
   if (!isOpen) return null;
+
+  if (currentUser.id === 'guest') {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-morita-charcoal/60 backdrop-blur-xs animate-fade-in">
+        <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-morita-sand text-center space-y-4">
+          <div className="p-3 bg-amber-100 rounded-full w-12 h-12 flex items-center justify-center mx-auto text-amber-800">
+            <ShieldAlert className="h-6 w-6" />
+          </div>
+          <h3 className="text-lg font-serif font-bold text-morita-charcoal">
+            Función reservada para vecinos registrados
+          </h3>
+          <p className="text-xs text-morita-charcoal/70 leading-relaxed">
+            Como visitante sin cuenta podés explorar todas las publicaciones del barrio, pero para publicar un aviso, servicio o pedido necesitás iniciar sesión o registrarte como vecino de La Morita.
+          </p>
+          <div className="pt-2 flex justify-center">
+            <button
+              type="button"
+              onClick={onClose}
+              className="py-2.5 px-6 rounded-xl text-xs font-bold bg-morita-mulberry hover:bg-morita-mulberry-dark text-white shadow-xs transition-colors cursor-pointer"
+            >
+              Entendido
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const handlePresetSelect = (index: number, url: string) => {
     setPhotoPresetIndex(index);

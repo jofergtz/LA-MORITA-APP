@@ -845,16 +845,18 @@ export default function App() {
           <span className="text-[10px] font-bold mt-0.5">Favoritos</span>
         </button>
 
-        {/* Floating Action Button for Publishing */}
-        <div className="relative -top-3 px-1 shrink-0">
-          <button
-            onClick={() => setIsPublishOpen(true)}
-            className="flex items-center justify-center h-12 w-12 rounded-full bg-morita-mulberry text-white shadow-lg shadow-morita-mulberry/30 active:scale-90 transition-transform cursor-pointer ring-4 ring-white"
-            title="Crear Publicación"
-          >
-            <Plus className="h-6 w-6 text-white stroke-[2.5]" />
-          </button>
-        </div>
+        {/* Floating Action Button for Publishing - Only for registered accounts */}
+        {currentUser.id !== 'guest' && (
+          <div className="relative -top-3 px-1 shrink-0">
+            <button
+              onClick={() => setIsPublishOpen(true)}
+              className="flex items-center justify-center h-12 w-12 rounded-full bg-morita-mulberry text-white shadow-lg shadow-morita-mulberry/30 active:scale-90 transition-transform cursor-pointer ring-4 ring-white"
+              title="Crear Publicación"
+            >
+              <Plus className="h-6 w-6 text-white stroke-[2.5]" />
+            </button>
+          </div>
+        )}
 
         <button
           onClick={() => {

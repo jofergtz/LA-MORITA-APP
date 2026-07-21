@@ -1028,7 +1028,7 @@ export default function Feed({
                       ¿Ofrecés repostería, reparación o necesitás prestada una escalera? Creá tu primera publicación para darte a conocer.
                     </p>
                   </div>
-                  {onOpenPublish ? (
+                  {currentUser.id !== 'guest' && onOpenPublish ? (
                     <button
                       type="button"
                       onClick={onOpenPublish}
@@ -1038,8 +1038,8 @@ export default function Feed({
                       <Plus className="h-3.5 w-3.5" />
                     </button>
                   ) : (
-                    <div className="mt-3 text-center text-[10px] font-bold text-morita-charcoal/40 py-1.5 bg-morita-sand/20 rounded-lg">
-                      Usá el botón superior
+                    <div className="mt-3 text-center text-[10px] font-bold text-amber-900 bg-amber-500/10 rounded-lg py-1.5 border border-amber-300/50">
+                      Creá una cuenta para publicar
                     </div>
                   )}
                 </div>
