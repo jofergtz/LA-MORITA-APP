@@ -44,6 +44,7 @@ interface AdminPanelProps {
   onAdminSaveAnnouncement: (ann: Announcement) => void;
   onAdminCreateAnnouncement: (ann: Omit<Announcement, 'id' | 'date'>) => void;
   onLogout?: () => void;
+  restrictToAnnouncements?: boolean;
 }
 
 const AVATAR_PRESETS = [
@@ -82,10 +83,15 @@ export default function AdminPanel({
   onAdminDeleteAnnouncement,
   onAdminSaveAnnouncement,
   onAdminCreateAnnouncement,
-  onLogout
+  onLogout,
+  restrictToAnnouncements = false
 }: AdminPanelProps) {
-  // Navigation tabs inside admin
-  const [adminTab, setAdminTab] = useState<'pubs' | 'users' | 'announcements'>('pubs');
+  // Navigation tabs inside admin (forced to announcements if restrictToAnnouncements is true)
+  const [adminTab, setAdminTab] = useState<'pubs' | 'users' | 'announcements'>(
+    restrictToAnnouncements ? 'announcements' : 'pubs'
+  );
+  
+  const activeAdminTab = restrictToAnnouncements ? 'announcements' : adminTab;
   
   // Search query states
   const [pubSearch, setPubSearch] = useState('');
@@ -411,32 +417,36 @@ export default function AdminPanel({
   return (
     <div className="bg-white border border-morita-sand rounded-3xl p-6 shadow-xs max-w-7xl mx-auto">
       
-      {/* 1. Admin Shield Header banner */}
+      {/* 1. Header banner */}
       <div className="bg-gradient-to-r from-morita-charcoal to-morita-charcoal/85 text-white p-6 rounded-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-8">
         <div className="flex items-center space-x-3.5">
           <div className="bg-morita-terracotta text-white p-3 rounded-full shadow-inner animate-pulse">
-            <ShieldAlert className="h-6 w-6" />
+            {restrictToAnnouncements ? <Megaphone className="h-6 w-6" /> : <ShieldAlert className="h-6 w-6" />}
           </div>
           <div>
             <h2 className="text-xl font-display font-bold tracking-tight">
-              Panel Administrativo de Moderación
+              {restrictToAnnouncements ? 'Cartelera de Comunicados - Junta Vecinal' : 'Panel Administrativo de Moderación'}
             </h2>
             <p className="text-xs text-white/70 mt-1 max-w-2xl">
-              Aquí podés gestionar, crear, editar o eliminar los perfiles de los vecinos y todas las publicaciones de la comunidad de **La Morita**. Úsalo con cuidado.
+              {restrictToAnnouncements
+                ? 'Desde este panel podés redactar, editar, fijar arriba y publicar comunicados oficiales para la cartelera de La Morita.'
+                : 'Aquí podés gestionar, crear, editar o eliminar los perfiles de los vecinos y todas las publicaciones de la comunidad de **La Morita**. Úsalo con cuidado.'}
             </p>
           </div>
         </div>
         <div className="flex flex-col sm:flex-row items-center gap-3 shrink-0">
           <div className="bg-white/10 px-3 py-1.5 rounded-lg border border-white/10 text-center shrink-0 w-full sm:w-auto">
-            <span className="block text-[9px] font-bold uppercase text-white/50 tracking-wider">Identidad Activa</span>
-            <span className="block text-xs font-bold text-morita-sand">{currentUser.name} (Admin)</span>
+            <span className="block text-[9px] font-bold uppercase text-white/50 tracking-wider">Modo de Acceso</span>
+            <span className="block text-xs font-bold text-morita-sand">
+              {restrictToAnnouncements ? 'Junta Vecinal 📣' : `${currentUser.name} (Admin)`}
+            </span>
           </div>
           {onLogout && (
             <button
               onClick={onLogout}
               className="w-full sm:w-auto bg-morita-terracotta hover:bg-morita-terracotta/95 text-white font-bold text-xs py-2.5 px-4 rounded-lg cursor-pointer transition-colors shadow-xs flex items-center justify-center gap-1.5"
             >
-              Salir de Admin 🛡️
+              {restrictToAnnouncements ? 'Salir de Junta 🚪' : 'Salir de Admin 🛡️'}
             </button>
           )}
         </div>
@@ -936,45 +946,47 @@ export default function AdminPanel({
         </div>
       )}
 
-      {/* 3. TABS SELECTOR */}
-      <div className="flex border-b border-morita-sand mb-6">
-        <button
-          onClick={() => setAdminTab('pubs')}
-          className={`px-5 py-3 text-xs font-bold uppercase tracking-wider border-b-2 transition-all flex items-center gap-2 cursor-pointer ${
-            adminTab === 'pubs'
-              ? 'border-morita-mulberry text-morita-mulberry'
-              : 'border-transparent text-morita-charcoal/50 hover:text-morita-charcoal'
-          }`}
-        >
-          <FileText className="h-4 w-4" />
-          <span>📢 Publicaciones ({publications.length})</span>
-        </button>
-        <button
-          onClick={() => setAdminTab('users')}
-          className={`px-5 py-3 text-xs font-bold uppercase tracking-wider border-b-2 transition-all flex items-center gap-2 cursor-pointer ${
-            adminTab === 'users'
-              ? 'border-morita-terracotta text-morita-terracotta'
-              : 'border-transparent text-morita-charcoal/50 hover:text-morita-charcoal'
-          }`}
-        >
-          <Users className="h-4 w-4" />
-          <span>👥 Vecinos y Perfiles ({allUsers.length})</span>
-        </button>
-        <button
-          onClick={() => setAdminTab('announcements')}
-          className={`px-5 py-3 text-xs font-bold uppercase tracking-wider border-b-2 transition-all flex items-center gap-2 cursor-pointer ${
-            adminTab === 'announcements'
-              ? 'border-amber-600 text-amber-600'
-              : 'border-transparent text-morita-charcoal/50 hover:text-morita-charcoal'
-          }`}
-        >
-          <Megaphone className="h-4 w-4" />
-          <span>📣 Cartelera de la Junta ({announcements.length})</span>
-        </button>
-      </div>
+      {/* 3. TABS SELECTOR (Hidden when restricted to announcements for Junta mode) */}
+      {!restrictToAnnouncements && (
+        <div className="flex overflow-x-auto whitespace-nowrap border-b border-morita-sand mb-6 no-scrollbar -mx-2 px-2 sm:mx-0 sm:px-0">
+          <button
+            onClick={() => setAdminTab('pubs')}
+            className={`px-4 sm:px-5 py-3 text-xs font-bold uppercase tracking-wider border-b-2 transition-all flex items-center gap-2 cursor-pointer shrink-0 ${
+              activeAdminTab === 'pubs'
+                ? 'border-morita-mulberry text-morita-mulberry'
+                : 'border-transparent text-morita-charcoal/50 hover:text-morita-charcoal'
+            }`}
+          >
+            <FileText className="h-4 w-4 shrink-0" />
+            <span>📢 Publicaciones ({publications.length})</span>
+          </button>
+          <button
+            onClick={() => setAdminTab('users')}
+            className={`px-4 sm:px-5 py-3 text-xs font-bold uppercase tracking-wider border-b-2 transition-all flex items-center gap-2 cursor-pointer shrink-0 ${
+              activeAdminTab === 'users'
+                ? 'border-morita-terracotta text-morita-terracotta'
+                : 'border-transparent text-morita-charcoal/50 hover:text-morita-charcoal'
+            }`}
+          >
+            <Users className="h-4 w-4 shrink-0" />
+            <span>👥 Vecinos y Perfiles ({allUsers.length})</span>
+          </button>
+          <button
+            onClick={() => setAdminTab('announcements')}
+            className={`px-4 sm:px-5 py-3 text-xs font-bold uppercase tracking-wider border-b-2 transition-all flex items-center gap-2 cursor-pointer shrink-0 ${
+              activeAdminTab === 'announcements'
+                ? 'border-amber-600 text-amber-600'
+                : 'border-transparent text-morita-charcoal/50 hover:text-morita-charcoal'
+            }`}
+          >
+            <Megaphone className="h-4 w-4 shrink-0" />
+            <span>📣 Cartelera de la Junta ({announcements.length})</span>
+          </button>
+        </div>
+      )}
 
       {/* 4. PUBLICATIONS TAB VIEW */}
-      {adminTab === 'pubs' && (
+      {activeAdminTab === 'pubs' && (
         <div className="space-y-4">
           
           {/* Controls bar */}
@@ -1150,7 +1162,7 @@ export default function AdminPanel({
       )}
 
       {/* 5. USER PROFILES TAB VIEW */}
-      {adminTab === 'users' && (
+      {activeAdminTab === 'users' && (
         <div className="space-y-4">
           
           {/* Controls bar */}
@@ -1309,7 +1321,7 @@ export default function AdminPanel({
       )}
 
       {/* 6. ANNOUNCEMENTS TAB VIEW */}
-      {adminTab === 'announcements' && (
+      {activeAdminTab === 'announcements' && (
         <div className="space-y-4">
           {/* Controls bar */}
           <div className="flex flex-col sm:flex-row gap-3 justify-between items-stretch sm:items-center">

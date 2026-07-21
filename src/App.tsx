@@ -17,9 +17,11 @@ import InstallPrompt from './components/InstallPrompt';
 
 import { User, Publication, Request, Message, Notification, ThankYou, PublicationType, CategoryType, Announcement } from './types';
 import { mockUsers, mockPublications, mockRequests, mockMessages, mockNotifications, mockThankYous, mockAnnouncements, guestUser } from './mockData';
-import { Leaf, Heart, Plus, User as UserIcon, ShieldAlert, Sparkles, MessageCircle, Check } from 'lucide-react';
+import { Leaf, Heart, Plus, User as UserIcon, ShieldAlert, Sparkles, MessageCircle, Check, Megaphone } from 'lucide-react';
 
-const DATA_VERSION = 'v8_santacruz_bolivia_real_prices_2026';
+const DATA_VERSION = 'v10_guest_default_pass_update_2026';
+export const ADMIN_PASSWORD = 'LarryO405';
+export const JUNTA_PASSWORD = 'JuntaVecinal2026';
 
 function getInitialData<T>(key: string, fallback: T): T {
   try {
@@ -54,7 +56,7 @@ export default function App() {
   );
 
   const [currentUser, setCurrentUser] = useState<User>(() =>
-    getInitialData('morita_currentUser', mockUsers.find(u => u.id === 'currentUser') || mockUsers[5])
+    getInitialData('morita_currentUser', guestUser)
   );
 
   const [publications, setPublications] = useState<Publication[]>(() => {
@@ -131,6 +133,12 @@ export default function App() {
     if (stored !== null) return stored === 'true';
     return true; // Default to true so Juan de Dios Vaca starts logged in as Super Admin
   });
+  const [isJuntaModalOpen, setIsJuntaModalOpen] = useState(false);
+  const [isJuntaLoggedIn, setIsJuntaLoggedIn] = useState<boolean>(() => {
+    const stored = localStorage.getItem('morita_juntaLoggedIn');
+    if (stored !== null) return stored === 'true';
+    return false;
+  });
 
   // Synchronize localStorage on states changes
   useEffect(() => {
@@ -168,6 +176,10 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('morita_adminLoggedIn', String(isAdminLoggedIn));
   }, [isAdminLoggedIn]);
+
+  useEffect(() => {
+    localStorage.setItem('morita_juntaLoggedIn', String(isJuntaLoggedIn));
+  }, [isJuntaLoggedIn]);
 
   // -----------------------------------------
   // 2. WORKFLOW HANDLERS
@@ -580,9 +592,12 @@ export default function App() {
         notifications={notifications.filter(n => n.userId === currentUser.id)}
         activeTab={activeTab}
         isAdmin={isUserAdmin}
+        isJunta={isJuntaLoggedIn}
         onNavigate={(tab) => {
           if (tab === 'admin' && !isAdminLoggedIn) {
             setIsAdminModalOpen(true);
+          } else if (tab === 'junta' && !isJuntaLoggedIn) {
+            setIsJuntaModalOpen(true);
           } else {
             setActiveTab(tab);
             if (tab === 'feed') setSelectedRequestIdForChat(null);
@@ -604,6 +619,7 @@ export default function App() {
           setIsEditProfileOpen(true);
         }}
         onOpenAdminLogin={() => setIsAdminModalOpen(true)}
+        onOpenJuntaLogin={() => setIsJuntaModalOpen(true)}
       />
 
       {/* 2. Main Content Stage */}
@@ -653,7 +669,7 @@ export default function App() {
             <AdminLoginGate
               onVerify={(username, passcode) => {
                 const isValidUser = username.trim().toLowerCase() === 'admin';
-                const isValidPass = passcode.trim() === 'admin2026';
+                const isValidPass = passcode.trim() === ADMIN_PASSWORD;
                 if (isValidUser && isValidPass) {
                   setIsAdminLoggedIn(true);
                   const adminUser = users.find(u => u.isAdmin) || users[0];
@@ -684,6 +700,46 @@ export default function App() {
               onLogout={() => {
                 setIsAdminLoggedIn(false);
                 setCurrentUser(guestUser);
+                setActiveTab('feed');
+              }}
+            />
+          )
+        ) : activeTab === 'junta' ? (
+          !isJuntaLoggedIn ? (
+            <AdminLoginGate
+              title="Ingreso Junta Vecinal"
+              description="Ingresá las credenciales de la Junta Vecinal para administrar la cartelera de comunicados de La Morita."
+              buttonText="Ingresar a la Junta"
+              icon={<Megaphone className="h-9 w-9 text-amber-700 animate-pulse" />}
+              onVerify={(username, passcode) => {
+                if (passcode.trim() === JUNTA_PASSWORD) {
+                  setIsJuntaLoggedIn(true);
+                  return true;
+                }
+                return false;
+              }}
+              onCancel={() => setActiveTab('feed')}
+            />
+          ) : (
+            <AdminPanel
+              currentUser={currentUser}
+              publications={publications}
+              allUsers={users}
+              announcements={announcements}
+              onOpenProfile={setSelectedProfileUserId}
+              onSwitchUser={handleSwitchUser}
+              onAdminDeletePublication={handleAdminDeletePublication}
+              onAdminSavePublication={handleAdminSavePublication}
+              onAdminCreatePublication={handleAdminCreatePublication}
+              onAdminDeleteUser={handleAdminDeleteUser}
+              onAdminSaveUser={handleAdminSaveUser}
+              onAdminCreateUser={handleAdminCreateUser}
+              onAdminDeleteAnnouncement={handleAdminDeleteAnnouncement}
+              onAdminSaveAnnouncement={handleAdminSaveAnnouncement}
+              onAdminCreateAnnouncement={handleAdminCreateAnnouncement}
+              restrictToAnnouncements={true}
+              onLogout={() => {
+                setIsJuntaLoggedIn(false);
                 setActiveTab('feed');
               }}
             />
@@ -904,6 +960,22 @@ export default function App() {
             <span className="text-[10px] font-bold mt-0.5">Admin 🛡️</span>
           </button>
         )}
+
+        {/* Junta button: ONLY visible when logged in as Junta */}
+        {isJuntaLoggedIn && (
+          <button
+            onClick={() => {
+              setActiveTab('junta');
+            }}
+            className={`flex flex-col items-center justify-center flex-1 h-full py-1 text-center transition-all active:scale-90 cursor-pointer ${
+              activeTab === 'junta' ? 'text-amber-800 font-extrabold' : 'text-amber-900/70 hover:text-amber-900'
+            }`}
+            title="Cartelera de la Junta Vecinal"
+          >
+            <Megaphone className="h-5 w-5 text-amber-700" />
+            <span className="text-[10px] font-bold mt-0.5">Junta 📣</span>
+          </button>
+        )}
       </div>
 
       {/* Admin Auth Modal Overlay */}
@@ -912,7 +984,7 @@ export default function App() {
           isModal={true}
           onVerify={(username, passcode) => {
             const isValidUser = username.trim().toLowerCase() === 'admin';
-            const isValidPass = passcode.trim() === 'admin2026';
+            const isValidPass = passcode.trim() === ADMIN_PASSWORD;
             if (isValidUser && isValidPass) {
               setIsAdminLoggedIn(true);
               const adminUser = users.find(u => u.isAdmin) || users[0];
@@ -924,6 +996,27 @@ export default function App() {
             return false;
           }}
           onCancel={() => setIsAdminModalOpen(false)}
+        />
+      )}
+
+      {/* Junta Auth Modal Overlay */}
+      {isJuntaModalOpen && (
+        <AdminLoginGate
+          isModal={true}
+          title="Ingreso Junta Vecinal"
+          description="Ingresá las credenciales de la Junta Vecinal para administrar la cartelera de comunicados de La Morita."
+          buttonText="Ingresar a la Junta"
+          icon={<Megaphone className="h-9 w-9 text-amber-700 animate-pulse" />}
+          onVerify={(username, passcode) => {
+            if (passcode.trim() === JUNTA_PASSWORD) {
+              setIsJuntaLoggedIn(true);
+              setActiveTab('junta');
+              setIsJuntaModalOpen(false);
+              return true;
+            }
+            return false;
+          }}
+          onCancel={() => setIsJuntaModalOpen(false)}
         />
       )}
 

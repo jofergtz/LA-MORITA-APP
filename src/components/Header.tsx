@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { User, Notification } from '../types';
-import { Leaf, Bell, User as UserIcon, HelpCircle, MessageSquare, Check, PlusCircle, ShieldAlert, Heart, Edit } from 'lucide-react';
+import { Leaf, Bell, User as UserIcon, HelpCircle, MessageSquare, Check, PlusCircle, ShieldAlert, Heart, Edit, Megaphone } from 'lucide-react';
 
 interface HeaderProps {
   currentUser: User;
@@ -8,6 +8,7 @@ interface HeaderProps {
   notifications: Notification[];
   activeTab: string;
   isAdmin?: boolean;
+  isJunta?: boolean;
   onNavigate: (tab: string) => void;
   onSwitchUser: (userId: string) => void;
   onOpenProfile: (userId: string) => void;
@@ -17,6 +18,7 @@ interface HeaderProps {
   onRegisterNewUserClick?: () => void;
   onEditProfileClick?: () => void;
   onOpenAdminLogin?: () => void;
+  onOpenJuntaLogin?: () => void;
 }
 
 export default function Header({
@@ -25,6 +27,7 @@ export default function Header({
   notifications,
   activeTab,
   isAdmin = false,
+  isJunta = false,
   onNavigate,
   onSwitchUser,
   onOpenProfile,
@@ -33,6 +36,7 @@ export default function Header({
   onRegisterNewUserClick,
   onEditProfileClick,
   onOpenAdminLogin,
+  onOpenJuntaLogin,
   onOpenPublish,
 }: HeaderProps) {
   const [showUserDropdown, setShowUserDropdown] = useState(false);
@@ -122,6 +126,23 @@ export default function Header({
               >
                 <ShieldAlert className="h-4 w-4" />
                 <span>Panel Admin 🛡️</span>
+              </button>
+            )}
+
+            {/* Junta Vecinal: CONDITIONAL - ONLY if authenticated user is Junta */}
+            {isJunta && (
+              <button
+                id="nav-junta"
+                onClick={() => onNavigate('junta')}
+                className={`px-3 py-2 rounded-lg text-sm font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                  activeTab === 'junta'
+                    ? 'bg-morita-terracotta text-white shadow-2xs'
+                    : 'text-morita-terracotta hover:bg-morita-terracotta/10 bg-morita-terracotta/5 border border-morita-terracotta/30'
+                }`}
+                title="Cartelera de Comunicados de la Junta Vecinal"
+              >
+                <Megaphone className="h-4 w-4" />
+                <span>Junta 📣</span>
               </button>
             )}
           </nav>
@@ -316,6 +337,7 @@ export default function Header({
                   </div>
 
                   {/* Switch Account / Neighbor Options */}
+                  {isAdmin && (
                   <div className="py-2">
                     <div className="px-3.5 py-1 text-[10px] font-bold text-purple-900 uppercase tracking-wider flex items-center justify-between">
                       <span>Cambiar de Vecino (Pruebas)</span>
@@ -346,6 +368,10 @@ export default function Header({
                         </button>
                       ))}
                     </div>
+                  </div>
+                  )}
+
+                  <div className="py-2">
 
                     {/* View as Guest */}
                     {currentUser.id !== 'guest' && (
@@ -372,6 +398,20 @@ export default function Header({
                       >
                         <ShieldAlert className="h-3.5 w-3.5 text-purple-700 shrink-0" />
                         <span>Acceso Administrador 🔐</span>
+                      </button>
+                    )}
+
+                    {/* Junta Vecinal Login Access link */}
+                    {!isJunta && onOpenJuntaLogin && (
+                      <button
+                        onClick={() => {
+                          onOpenJuntaLogin();
+                          setShowUserDropdown(false);
+                        }}
+                        className="w-full text-left px-3.5 py-1.5 text-xs font-bold text-amber-900 bg-amber-50/80 hover:bg-amber-100 flex items-center space-x-2 transition-colors cursor-pointer mt-1"
+                      >
+                        <Megaphone className="h-3.5 w-3.5 text-amber-700 shrink-0" />
+                        <span>Acceso Junta Vecinal 📣</span>
                       </button>
                     )}
 
