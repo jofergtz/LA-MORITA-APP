@@ -13,6 +13,7 @@ import UserProfileModal from './components/UserProfileModal';
 import RegistrationModal from './components/RegistrationModal';
 import AdminPanel from './components/AdminPanel';
 import AdminLoginGate from './components/AdminLoginGate';
+import InstallPrompt from './components/InstallPrompt';
 
 import { User, Publication, Request, Message, Notification, ThankYou, PublicationType, CategoryType, Announcement } from './types';
 import { mockUsers, mockPublications, mockRequests, mockMessages, mockNotifications, mockThankYous, mockAnnouncements, guestUser } from './mockData';
@@ -569,7 +570,9 @@ export default function App() {
 
   return (
     <div id="morita-app-wrapper" className="min-h-screen bg-morita-beige flex flex-col justify-between selection:bg-morita-sand selection:text-morita-mulberry overflow-x-hidden w-full max-w-full">
-      
+      {/* PWA Install Banner */}
+      <InstallPrompt />
+
       {/* 1. Header component */}
       <Header
         currentUser={currentUser}

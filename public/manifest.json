@@ -1,0 +1,33 @@
+{
+  "short_name": "La Morita",
+  "name": "La Morita - Red Vecinal de Confianza",
+  "description": "Aplicación comunitaria y red vecinal de confianza de Barrio La Morita, Santa Cruz de la Sierra.",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/pwa-192x192.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/pwa-512x512.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#FDFBF7",
+  "theme_color": "#722F37",
+  "display": "standalone",
+  "orientation": "portrait",
+  "scope": "/",
+  "lang": "es",
+  "categories": ["community", "social", "lifestyle"]
+}

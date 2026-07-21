@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#722F37" />
+      <stop offset="100%" stop-color="#4A1C23" />
+    </linearGradient>
+    <linearGradient id="accentGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#E07A5F" />
+      <stop offset="100%" stop-color="#D97757" />
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="130%" height="130%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#000000" flood-opacity="0.2" />
+    </filter>
+  </defs>
+  <!-- Background Circle -->
+  <rect width="512" height="512" rx="112" fill="url(#bgGrad)" />
+  
+  <!-- Outer Decorative Ring -->
+  <circle cx="256" cy="256" r="216" fill="none" stroke="#FDFBF7" stroke-opacity="0.15" stroke-width="8" stroke-dasharray="16 12" />
+
+  <!-- Central House & Community Emblem -->
+  <g filter="url(#shadow)" transform="translate(0, 8)">
+    <!-- House Base -->
+    <path d="M 160 240 L 160 360 C 160 373.2 170.8 384 184 384 L 328 384 C 341.2 384 352 373.2 352 360 L 352 240" fill="#FDFBF7" />
+    
+    <!-- Roof -->
+    <path d="M 128 250 L 256 144 L 384 250 C 392 256.5 392 268 382 272 C 375 275 366 273 360 268 L 256 182 L 152 268 C 146 273 137 275 130 272 C 120 268 120 256.5 128 250 Z" fill="url(#accentGrad)" />
+
+    <!-- Arch Door / Heart Center -->
+    <path d="M 224 384 L 224 304 C 224 286.3 238.3 272 256 272 C 273.7 272 288 286.3 288 304 L 288 384 Z" fill="#722F37" />
+
+    <!-- Windows -->
+    <rect x="188" y="272" width="24" height="24" rx="6" fill="#E8D8C8" />
+    <rect x="300" y="272" width="24" height="24" rx="6" fill="#E8D8C8" />
+  </g>
+
+  <!-- Mulberry Leaf Branch Accents -->
+  <path d="M 120 380 C 90 350 90 300 120 270 C 125 295 110 330 120 380 Z" fill="#E07A5F" opacity="0.9" />
+  <path d="M 392 380 C 422 350 422 300 392 270 C 387 295 402 330 392 380 Z" fill="#E07A5F" opacity="0.9" />
+
+  <!-- Floating Community Star/Heart Badge -->
+  <circle cx="256" cy="120" r="28" fill="#E07A5F" stroke="#FDFBF7" stroke-width="4" />
+  <path d="M 256 129 L 248.5 133 L 250 124.5 L 243.5 118.5 L 252 117.3 L 256 109 L 260 117.3 L 268.5 118.5 L 262 124.5 L 263.5 133 Z" fill="#FDFBF7" />
+</svg>
