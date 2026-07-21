@@ -119,6 +119,7 @@ export default function Feed({
   }, [publications]);
 
   const [isStatsOpen, setIsStatsOpen] = useState(true);
+  const [isMobileCarteleraOpen, setIsMobileCarteleraOpen] = useState(true);
 
   // Compute neighborhood statistics for the admin dashboard
   const stats = useMemo(() => {
@@ -406,6 +407,8 @@ export default function Feed({
           </div>
         </div>
       </div>
+
+
 
       {/* Administrador - Panel de Estadísticas del Barrio */}
       {isAdmin && stats && (

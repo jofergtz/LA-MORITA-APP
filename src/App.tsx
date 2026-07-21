@@ -131,7 +131,7 @@ export default function App() {
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState<boolean>(() => {
     const stored = localStorage.getItem('morita_adminLoggedIn');
     if (stored !== null) return stored === 'true';
-    return true; // Default to true so Juan de Dios Vaca starts logged in as Super Admin
+    return false; // Default to guest mode on fresh install / first launch
   });
   const [isJuntaModalOpen, setIsJuntaModalOpen] = useState(false);
   const [isJuntaLoggedIn, setIsJuntaLoggedIn] = useState<boolean>(() => {

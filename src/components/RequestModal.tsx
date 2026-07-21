@@ -118,10 +118,10 @@ export default function RequestModal({
   };
 
   return (
-    <div id="request-modal-overlay" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-morita-charcoal/60 backdrop-blur-xs">
+    <div id="request-modal-overlay" className="fixed inset-0 z-50 overflow-y-auto bg-morita-charcoal/60 backdrop-blur-xs p-3 sm:p-6 flex items-center justify-center min-h-full">
       <div 
         id="request-modal-content" 
-        className="bg-white rounded-2xl border border-morita-sand shadow-2xl w-full max-w-lg overflow-hidden flex flex-col"
+        className="bg-white rounded-2xl border border-morita-sand shadow-2xl w-full max-w-lg my-auto max-h-[88vh] overflow-y-auto flex flex-col touch-pan-y animate-fade-in"
       >
         {/* Header */}
         <div className="px-5 py-4 border-b border-morita-sand/50 bg-morita-beige/30 flex items-center justify-between">

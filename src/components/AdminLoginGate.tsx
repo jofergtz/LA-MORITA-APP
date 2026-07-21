@@ -45,7 +45,7 @@ export default function AdminLoginGate({
   const defaultIcon = icon || <ShieldAlert className="h-9 w-9 animate-pulse" />;
 
   return (
-    <div className={isModal ? "fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-fade-in" : "max-w-md mx-auto my-8"}>
+    <div className={isModal ? "fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-fade-in touch-pan-y" : "max-w-md mx-auto my-8"}>
       <div className="bg-white border border-morita-sand rounded-3xl p-6 sm:p-8 shadow-xl max-w-md w-full relative animate-fade-in">
         
         {isModal && (

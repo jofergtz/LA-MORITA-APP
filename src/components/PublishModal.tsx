@@ -387,10 +387,10 @@ export default function PublishModal({ isOpen, onClose, currentUser, publication
   };
 
   return (
-    <div id="publish-modal-overlay" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-morita-charcoal/60 backdrop-blur-xs overflow-y-auto">
+    <div id="publish-modal-overlay" className="fixed inset-0 z-50 overflow-y-auto bg-morita-charcoal/60 backdrop-blur-xs p-3 sm:p-6 flex items-center justify-center min-h-full">
       <div 
         id="publish-modal-content" 
-        className="bg-white rounded-2xl border border-morita-sand shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto flex flex-col"
+        className="bg-white rounded-2xl border border-morita-sand shadow-2xl w-full max-w-2xl my-auto max-h-[88vh] overflow-y-auto flex flex-col touch-pan-y animate-fade-in"
       >
         {/* Header */}
         <div className="px-6 py-4 border-b border-morita-sand/60 flex items-center justify-between bg-morita-beige/35">

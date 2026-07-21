@@ -81,13 +81,13 @@ export default function UserProfileModal({
   };
 
   return (
-    <div id="profile-modal-overlay" className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-morita-charcoal/60 backdrop-blur-xs overflow-y-auto">
+    <div id="profile-modal-overlay" className="fixed inset-0 z-50 overflow-y-auto bg-morita-charcoal/60 backdrop-blur-xs p-3 sm:p-6 flex items-center justify-center min-h-full">
       <div 
         id="profile-modal-content" 
-        className="bg-white rounded-2xl border border-morita-sand shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto flex flex-col"
+        className="bg-white rounded-2xl border border-morita-sand shadow-2xl w-full max-w-2xl my-auto max-h-[88vh] flex flex-col overflow-hidden animate-fade-in"
       >
         {/* Header */}
-        <div className="px-6 py-4 border-b border-morita-sand/50 flex items-center justify-between bg-morita-beige/35">
+        <div className="px-6 py-4 border-b border-morita-sand/50 flex items-center justify-between bg-morita-beige/35 shrink-0">
           <div className="flex items-center space-x-2">
             <span className="text-xl">👤</span>
             <div>
@@ -108,7 +108,7 @@ export default function UserProfileModal({
         </div>
 
         {/* Modal Body */}
-        <div className="p-6 space-y-6 flex-1 overflow-y-auto">
+        <div className="p-4 sm:p-6 space-y-6 flex-1 overflow-y-auto touch-pan-y">
           
           {/* 1. Profile Hero Info */}
           <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 pb-6 border-b border-morita-sand/40">

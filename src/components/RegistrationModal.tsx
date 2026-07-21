@@ -347,10 +347,10 @@ export default function RegistrationModal({
   const isEditingOther = !isRegister && userToEdit && userToEdit.id !== currentUser.id;
 
   return (
-    <div id="registration-modal-overlay" className="fixed inset-0 z-55 flex items-center justify-center p-4 bg-morita-charcoal/60 backdrop-blur-xs overflow-y-auto">
+    <div id="registration-modal-overlay" className="fixed inset-0 z-55 overflow-y-auto bg-morita-charcoal/60 backdrop-blur-xs p-3 sm:p-6 flex items-center justify-center min-h-full">
       <div 
         id="registration-modal-content" 
-        className="bg-white rounded-2xl border border-morita-sand shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto flex flex-col my-8"
+        className="bg-white rounded-2xl border border-morita-sand shadow-2xl w-full max-w-lg my-auto max-h-[88vh] overflow-y-auto flex flex-col touch-pan-y animate-fade-in"
       >
         {/* Header */}
         <div className="px-6 py-4 border-b border-morita-sand/50 bg-morita-beige/35 flex items-center justify-between sticky top-0 bg-white z-10">
