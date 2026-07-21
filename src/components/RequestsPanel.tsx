@@ -332,7 +332,7 @@ export default function RequestsPanel({
                   <h3 className="text-xs font-bold text-morita-charcoal/50 uppercase tracking-wider flex items-center gap-1">
                     {selectedRequest.publicationType === 'necesito' ? 'Coordinando Ayuda 🤝' : 'Coordinando Compra/Contrato 🛒'}
                   </h3>
-                  <h2 className="text-sm font-serif font-bold text-morita-charcoal leading-tight truncate">
+                  <h2 className="text-sm sm:text-base font-serif font-bold text-morita-charcoal leading-snug break-words">
                     {selectedRequest.publicationTitle}
                   </h2>
                 </div>

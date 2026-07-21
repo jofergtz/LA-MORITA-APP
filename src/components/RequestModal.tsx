@@ -124,23 +124,23 @@ export default function RequestModal({
         className="bg-white rounded-2xl border border-morita-sand shadow-2xl w-full max-w-lg my-auto max-h-[88vh] overflow-y-auto flex flex-col touch-pan-y animate-fade-in"
       >
         {/* Header */}
-        <div className="px-5 py-4 border-b border-morita-sand/50 bg-morita-beige/30 flex items-center justify-between">
-          <div className="flex items-center space-x-2.5">
-            <div className={`p-2 rounded-full ${isHelp ? 'bg-morita-leaf/10 text-morita-leaf' : 'bg-morita-mulberry/10 text-morita-mulberry'}`}>
+        <div className="px-5 py-4 border-b border-morita-sand/50 bg-morita-beige/30 flex items-start justify-between gap-3">
+          <div className="flex items-start space-x-2.5 min-w-0 flex-1">
+            <div className={`p-2 rounded-full shrink-0 ${isHelp ? 'bg-morita-leaf/10 text-morita-leaf' : 'bg-morita-mulberry/10 text-morita-mulberry'}`}>
               {isHelp ? <HeartHandshake className="h-5 w-5" /> : <ShoppingBag className="h-5 w-5" />}
             </div>
-            <div>
-              <h3 className="text-sm font-bold text-morita-charcoal/50 uppercase tracking-wider">
+            <div className="min-w-0 flex-1">
+              <h3 className="text-xs font-bold text-morita-charcoal/50 uppercase tracking-wider">
                 {isHelp ? 'Responder Pedido de Ayuda' : 'Enviar Solicitud de Interés'}
               </h3>
-              <h2 className="text-base font-serif font-bold text-morita-charcoal leading-tight truncate max-w-xs sm:max-w-md">
+              <h2 className="text-base font-serif font-bold text-morita-charcoal leading-snug break-words mt-0.5">
                 {publication.title}
               </h2>
             </div>
           </div>
           <button 
             onClick={onClose}
-            className="p-1.5 rounded-full hover:bg-morita-sand/40 text-morita-charcoal/60 transition-colors cursor-pointer"
+            className="p-1.5 rounded-full hover:bg-morita-sand/40 text-morita-charcoal/60 transition-colors cursor-pointer shrink-0 mt-0.5"
           >
             <X className="h-5 w-5" />
           </button>
@@ -159,15 +159,32 @@ export default function RequestModal({
             <img
               src={publication.authorAvatar}
               alt={publication.authorName}
-              className="h-8 w-8 rounded-full object-cover border border-morita-sand"
+              className="h-8 w-8 rounded-full object-cover border border-morita-sand shrink-0"
             />
             <div className="flex-1 min-w-0">
               <span className="text-xs text-morita-charcoal/60 block">Le vas a escribir a:</span>
-              <span className="text-xs font-bold text-morita-charcoal block">
+              <span className="text-xs font-bold text-morita-charcoal block break-words">
                 {publication.authorName} <span className="text-morita-charcoal/50 font-normal">({publication.zone})</span>
               </span>
             </div>
           </div>
+
+          {/* Full Publication Description Box */}
+          {publication.description && (
+            <div className="p-3.5 rounded-xl bg-morita-beige/35 border border-morita-sand/60 text-xs text-morita-charcoal/90 leading-relaxed font-sans space-y-1">
+              <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-morita-charcoal/50 gap-2">
+                <span>Detalle de lo que ofrece el vecino:</span>
+                {publication.priceValue && (
+                  <span className="text-morita-mulberry font-extrabold text-[11px] bg-white px-2 py-0.5 rounded-md border border-morita-sand/40 shrink-0">
+                    {publication.priceType === 'monto' ? (publication.priceValue.toLowerCase().includes('bs') ? publication.priceValue : `Bs. ${publication.priceValue}`) : publication.priceType === 'intercambio' ? 'Intercambio 🤝' : 'A consultar 💬'}
+                  </span>
+                )}
+              </div>
+              <p className="whitespace-pre-wrap pt-0.5 text-xs text-morita-charcoal/85 leading-relaxed font-sans">
+                {publication.description}
+              </p>
+            </div>
+          )}
 
           {/* Comment text area */}
           <div>
