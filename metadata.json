@@ -1,0 +1,6 @@
+{
+  "name": "La Morita",
+  "description": "Una red vecinal colaborativa donde los vecinos pueden publicar ofertas, servicios y pedidos de ayuda, coordinando todo directamente mediante solicitudes y chats integrados.",
+  "requestFramePermissions": ["geolocation", "camera"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
