@@ -139,14 +139,14 @@ export default function Header({
           </nav>
 
           {/* Utility Buttons Container */}
-          <div className="flex items-center space-x-1.5 sm:space-x-2.5 shrink-0 min-w-0">
+          <div className="flex flex-row items-center space-x-1 sm:space-x-2.5 shrink min-w-0">
             
             {/* User / Account Switcher Dropdown */}
-            <div className="relative">
+            <div className="relative shrink min-w-0">
               <button
                 id="btn-user-account"
                 onClick={() => setShowUserDropdown(!showUserDropdown)}
-                className={`flex items-center space-x-1.5 px-2 py-1 sm:px-2.5 sm:py-1.5 rounded-xl border transition-colors cursor-pointer shrink-0 ${
+                className={`flex flex-row items-center space-x-1 px-1.5 py-1 sm:px-2.5 sm:py-1.5 rounded-xl border transition-colors cursor-pointer shrink min-w-0 ${
                   currentUser.id === 'currentUser' || isAdmin
                     ? 'border-purple-200 bg-purple-50 hover:bg-purple-100 text-purple-950'
                     : currentUser.id === 'guest'
@@ -161,10 +161,10 @@ export default function Header({
                   <img
                     src={currentUser.avatar}
                     alt={currentUser.name}
-                    className="h-6 w-6 rounded-full object-cover border border-purple-200 shrink-0"
+                    className="h-5 w-5 sm:h-6 sm:w-6 rounded-full object-cover border border-purple-200 shrink-0"
                   />
                 )}
-                <span className="text-xs font-bold max-w-[85px] truncate hidden sm:inline">
+                <span className="text-[11px] sm:text-xs font-bold max-w-[55px] sm:max-w-[85px] truncate inline-block">
                   {isAdmin ? 'Admin' : currentUser.id === 'guest' ? 'Visitante' : currentUser.name.split(' ')[0]}
                 </span>
               </button>
@@ -254,15 +254,15 @@ export default function Header({
             </div>
 
             {/* Notification bell */}
-            <div className="relative">
+            <div className="relative shrink-0 flex flex-row items-center">
               <button
                 id="btn-notifications"
                 onClick={() => setShowNotificationDropdown(!showNotificationDropdown)}
-                className="p-1.5 sm:p-2 rounded-full hover:bg-morita-sand/50 text-morita-charcoal/70 hover:text-morita-mulberry transition-colors relative cursor-pointer shrink-0"
+                className="p-1.5 sm:p-2 rounded-full hover:bg-morita-sand/50 text-morita-charcoal/70 hover:text-morita-mulberry transition-colors relative cursor-pointer shrink-0 flex flex-row items-center"
               >
-                <Bell className="h-5 w-5" />
+                <Bell className="h-5 w-5 shrink-0" />
                 {unreadNotifications.length > 0 && (
-                  <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-morita-terracotta text-[9px] font-bold text-white animate-pulse">
+                  <span className="absolute top-0.5 right-0.5 sm:top-1 sm:right-1 flex h-4 w-4 items-center justify-center rounded-full bg-morita-terracotta text-[9px] font-bold text-white animate-pulse shrink-0">
                     {unreadNotifications.length}
                   </span>
                 )}
@@ -341,18 +341,18 @@ export default function Header({
             </div>
 
             {/* User Profile Thumbnail */}
-            <div className="flex items-center space-x-1.5 pl-1 border-l border-morita-sand shrink-0">
+            <div className="flex flex-row items-center space-x-1 pl-1 border-l border-morita-sand shrink min-w-0">
               <button
                 id="btn-user-profile"
                 onClick={() => onOpenProfile(currentUser.id)}
-                className="flex items-center space-x-1.5 focus:outline-hidden group cursor-pointer shrink-0"
+                className="flex flex-row items-center space-x-1 sm:space-x-1.5 focus:outline-hidden group cursor-pointer shrink min-w-0"
               >
                 <img
                   src={currentUser.avatar}
                   alt={currentUser.name}
                   className="h-7 w-7 sm:h-8 sm:w-8 rounded-full object-cover border-2 border-morita-mulberry group-hover:border-morita-terracotta transition-colors shrink-0"
                 />
-                <span className="hidden lg:inline-block text-xs font-semibold text-morita-charcoal group-hover:text-morita-mulberry truncate max-w-[100px]">
+                <span className="inline-block text-xs font-semibold text-morita-charcoal group-hover:text-morita-mulberry truncate max-w-[50px] xs:max-w-[70px] sm:max-w-[100px]">
                   {currentUser.name}
                 </span>
               </button>
