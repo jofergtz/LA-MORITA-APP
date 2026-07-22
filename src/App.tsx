@@ -149,6 +149,9 @@ export default function App() {
 
   useEffect(() => {
     safeStorage.setItem('morita_currentUser', currentUser);
+    if (currentUser && currentUser.id && currentUser.id !== 'guest') {
+      api.updateUserProfile(currentUser).catch(err => console.warn('Auto sync currentUser error:', err));
+    }
   }, [currentUser]);
 
   useEffect(() => {

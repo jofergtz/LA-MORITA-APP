@@ -93,14 +93,40 @@ export const api = {
     // ALWAYS override and add Supabase live cloud users (never filtered by local deleted list)
     supabaseUsers.forEach(u => userMap.set(u.id, u));
 
+    // Auto-sync any local users that exist in localStorage but are missing in Supabase
+    if (isSupabaseConfigured() && supabase) {
+      localUsers.forEach(lu => {
+        if (!deletedUserIds.includes(lu.id) && lu.id !== 'guest' && !supabaseUsers.some(su => su.id === lu.id)) {
+          let safeAvatar = lu.avatar || '';
+          if (safeAvatar.startsWith('data:image/') && safeAvatar.length > 400000) {
+            safeAvatar = 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80';
+          }
+          supabase.from('profiles').upsert({
+            id: lu.id,
+            name: lu.name,
+            email: lu.email || '',
+            phone: lu.phone || '',
+            avatar: safeAvatar,
+            zone: lu.zone || 'Barrio La Morita',
+            bio: lu.bio || '',
+            skills: lu.skills || [],
+            is_admin: lu.isAdmin || false,
+            updated_at: new Date().toISOString()
+          }).then(({ error }) => {
+            if (error) console.warn('Background user profile sync warning:', error);
+          });
+        }
+      });
+    }
+
     return Array.from(userMap.values());
   },
 
   async updateUserProfile(updatedUser: User): Promise<User> {
     if (isSupabaseConfigured() && supabase) {
-      // Ensure avatar is not a giant uncompressed camera string that breaks PostgREST
+      // Ensure avatar is not a giant uncompressed camera string (> 400KB) that breaks PostgREST
       let safeAvatar = updatedUser.avatar;
-      if (safeAvatar && safeAvatar.startsWith('data:image/') && safeAvatar.length > 150000) {
+      if (safeAvatar && safeAvatar.startsWith('data:image/') && safeAvatar.length > 400000) {
         console.warn('Avatar string exceeds safe size, truncating for Supabase sync');
         safeAvatar = 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80';
       }
@@ -181,6 +207,54 @@ export const api = {
     // ALWAYS override and add Supabase live cloud publications (never filtered by local deleted list)
     supabasePubs.forEach(p => pubMap.set(p.id, p));
 
+    // Auto-sync any local publications that exist in localStorage but are missing in Supabase cloud
+    if (isSupabaseConfigured() && supabase) {
+      localPubs.forEach(async (lp) => {
+        if (!deletedPubIds.includes(lp.id) && !supabasePubs.some(sp => sp.id === lp.id)) {
+          try {
+            let safeAvatar = lp.authorAvatar || '';
+            if (safeAvatar.startsWith('data:image/') && safeAvatar.length > 400000) {
+              safeAvatar = 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80';
+            }
+            let safePhoto = lp.photo || '';
+            if (safePhoto.startsWith('data:image/') && safePhoto.length > 600000) {
+              safePhoto = '';
+            }
+
+            // Ensure profile exists in Supabase first
+            await supabase.from('profiles').upsert({
+              id: lp.userId,
+              name: lp.authorName || 'Vecino de La Morita',
+              avatar: safeAvatar,
+              zone: lp.zone || 'Barrio La Morita',
+              updated_at: new Date().toISOString()
+            });
+
+            // Insert publication
+            await supabase.from('publications').upsert({
+              id: lp.id,
+              user_id: lp.userId,
+              author_name: lp.authorName,
+              author_avatar: safeAvatar,
+              type: lp.type,
+              title: lp.title,
+              category: lp.category,
+              description: lp.description,
+              price_type: lp.priceType,
+              price_value: lp.priceValue,
+              photo: safePhoto,
+              zone: lp.zone,
+              availability: lp.availability,
+              is_active: lp.isActive ?? true,
+              created_at: lp.createdAt
+            });
+          } catch (err) {
+            console.warn('Background publication auto-sync error:', err);
+          }
+        }
+      });
+    }
+
     return Array.from(pubMap.values())
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   },
@@ -195,16 +269,30 @@ export const api = {
 
     if (isSupabaseConfigured() && supabase) {
       let safeAuthorAvatar = newPub.authorAvatar;
-      if (safeAuthorAvatar && safeAuthorAvatar.startsWith('data:image/') && safeAuthorAvatar.length > 150000) {
+      if (safeAuthorAvatar && safeAuthorAvatar.startsWith('data:image/') && safeAuthorAvatar.length > 400000) {
         safeAuthorAvatar = 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80';
       }
 
       let safePhoto = newPub.photo;
-      if (safePhoto && safePhoto.startsWith('data:image/') && safePhoto.length > 250000) {
+      if (safePhoto && safePhoto.startsWith('data:image/') && safePhoto.length > 600000) {
         safePhoto = '';
       }
 
-      const { error } = await supabase.from('publications').insert({
+      // Step 1: Ensure user profile exists in Supabase profiles BEFORE inserting publication to prevent FK error
+      try {
+        await supabase.from('profiles').upsert({
+          id: newPub.userId,
+          name: newPub.authorName || 'Vecino de La Morita',
+          avatar: safeAuthorAvatar,
+          zone: newPub.zone || 'Barrio La Morita',
+          updated_at: new Date().toISOString()
+        });
+      } catch (pErr) {
+        console.warn('Pre-publication profile upsert warning:', pErr);
+      }
+
+      // Step 2: Insert publication
+      let { error } = await supabase.from('publications').insert({
         id: newPub.id,
         user_id: newPub.userId,
         author_name: newPub.authorName,
@@ -221,7 +309,37 @@ export const api = {
         is_active: newPub.isActive,
         created_at: newPub.createdAt
       });
-      if (error) console.warn('Supabase createPublication notice:', error.message || error);
+
+      // If FK 23503 or any error occurred, retry profile upsert + publication insert
+      if (error) {
+        console.warn('First createPublication attempt warning:', error.message || error);
+        await supabase.from('profiles').upsert({
+          id: newPub.userId,
+          name: newPub.authorName || 'Vecino de La Morita',
+          avatar: safeAuthorAvatar,
+          zone: newPub.zone || 'Barrio La Morita',
+          updated_at: new Date().toISOString()
+        });
+
+        const retryRes = await supabase.from('publications').insert({
+          id: newPub.id,
+          user_id: newPub.userId,
+          author_name: newPub.authorName,
+          author_avatar: safeAuthorAvatar,
+          type: newPub.type,
+          title: newPub.title,
+          category: newPub.category,
+          description: newPub.description,
+          price_type: newPub.priceType,
+          price_value: newPub.priceValue,
+          photo: safePhoto,
+          zone: newPub.zone,
+          availability: newPub.availability,
+          is_active: newPub.isActive,
+          created_at: newPub.createdAt
+        });
+        if (retryRes.error) console.error('Retry createPublication error:', retryRes.error);
+      }
     }
 
     const current = getLocalData<Publication[]>(STORAGE_KEYS.PUBLICATIONS, mockPublications);
@@ -233,13 +351,26 @@ export const api = {
   async updatePublication(pub: Publication): Promise<Publication> {
     if (isSupabaseConfigured() && supabase) {
       let safeAuthorAvatar = pub.authorAvatar;
-      if (safeAuthorAvatar && safeAuthorAvatar.startsWith('data:image/') && safeAuthorAvatar.length > 150000) {
+      if (safeAuthorAvatar && safeAuthorAvatar.startsWith('data:image/') && safeAuthorAvatar.length > 400000) {
         safeAuthorAvatar = 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80';
       }
 
       let safePhoto = pub.photo;
-      if (safePhoto && safePhoto.startsWith('data:image/') && safePhoto.length > 250000) {
+      if (safePhoto && safePhoto.startsWith('data:image/') && safePhoto.length > 600000) {
         safePhoto = '';
+      }
+
+      // Ensure profile exists first
+      try {
+        await supabase.from('profiles').upsert({
+          id: pub.userId,
+          name: pub.authorName || 'Vecino de La Morita',
+          avatar: safeAuthorAvatar,
+          zone: pub.zone || 'Barrio La Morita',
+          updated_at: new Date().toISOString()
+        });
+      } catch (pErr) {
+        console.warn('Pre-update publication profile upsert warning:', pErr);
       }
 
       const { error } = await supabase.from('publications').upsert({
