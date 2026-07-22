@@ -66,14 +66,14 @@ export const api = {
         if (!error && data) {
           supabaseUsers = data.map((u: any) => ({
             id: u.id,
-            name: u.name,
-            email: u.email,
-            phone: u.phone,
-            avatar: u.avatar,
-            zone: u.zone,
-            bio: u.bio,
-            skills: u.skills,
-            isAdmin: u.is_admin || u.isAdmin || false
+            name: u.name || 'Vecino',
+            email: u.email || '',
+            phone: u.phone || '',
+            avatar: u.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80',
+            zone: u.zone || 'Barrio La Morita',
+            bio: u.bio || '',
+            skills: Array.isArray(u.skills) ? u.skills : (typeof u.skills === 'string' ? JSON.parse(u.skills) : []),
+            isAdmin: u.is_admin ?? u.isAdmin ?? false
           }));
         }
       } catch (err) {
@@ -82,11 +82,18 @@ export const api = {
     }
 
     const userMap = new Map<string, User>();
-    mockUsers.forEach(u => userMap.set(u.id, u));
-    localUsers.forEach(u => userMap.set(u.id, u));
+    // Add mock users unless deleted locally
+    mockUsers.forEach(u => {
+      if (!deletedUserIds.includes(u.id)) userMap.set(u.id, u);
+    });
+    // Add local users unless deleted locally
+    localUsers.forEach(u => {
+      if (!deletedUserIds.includes(u.id)) userMap.set(u.id, u);
+    });
+    // ALWAYS override and add Supabase live cloud users (never filtered by local deleted list)
     supabaseUsers.forEach(u => userMap.set(u.id, u));
 
-    return Array.from(userMap.values()).filter(u => !deletedUserIds.includes(u.id));
+    return Array.from(userMap.values());
   },
 
   async updateUserProfile(updatedUser: User): Promise<User> {
@@ -134,20 +141,20 @@ export const api = {
         if (!error && data) {
           supabasePubs = data.map((item: any) => ({
             id: item.id,
-            userId: item.user_id,
-            authorName: item.author_name,
-            authorAvatar: item.author_avatar,
-            type: item.type,
-            title: item.title,
-            category: item.category,
-            description: item.description,
-            priceType: item.price_type,
-            priceValue: item.price_value,
-            photo: item.photo,
-            zone: item.zone,
-            availability: item.availability,
-            isActive: item.is_active ?? true,
-            createdAt: item.created_at
+            userId: item.user_id || item.userId || '',
+            authorName: item.author_name || item.authorName || 'Vecino de La Morita',
+            authorAvatar: item.author_avatar || item.authorAvatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80',
+            type: item.type || 'ofrezco',
+            title: item.title || '',
+            category: item.category || 'Otros',
+            description: item.description || '',
+            priceType: item.price_type || item.priceType || 'fijo',
+            priceValue: item.price_value || item.priceValue || '',
+            photo: item.photo || '',
+            zone: item.zone || 'Barrio La Morita',
+            availability: item.availability || '',
+            isActive: item.is_active ?? item.isActive ?? true,
+            createdAt: item.created_at || item.createdAt || new Date().toISOString()
           }));
         }
       } catch (err) {
@@ -156,12 +163,18 @@ export const api = {
     }
 
     const pubMap = new Map<string, Publication>();
-    mockPublications.forEach(p => pubMap.set(p.id, p));
-    localPubs.forEach(p => pubMap.set(p.id, p));
+    // Add mock publications unless deleted locally
+    mockPublications.forEach(p => {
+      if (!deletedPubIds.includes(p.id)) pubMap.set(p.id, p);
+    });
+    // Add local publications unless deleted locally
+    localPubs.forEach(p => {
+      if (!deletedPubIds.includes(p.id)) pubMap.set(p.id, p);
+    });
+    // ALWAYS override and add Supabase live cloud publications (never filtered by local deleted list)
     supabasePubs.forEach(p => pubMap.set(p.id, p));
 
     return Array.from(pubMap.values())
-      .filter(p => !deletedPubIds.includes(p.id))
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   },
 
@@ -476,12 +489,15 @@ export const api = {
     }
 
     const annMap = new Map<string, Announcement>();
-    mockAnnouncements.forEach(a => annMap.set(a.id, a));
-    localAnns.forEach(a => annMap.set(a.id, a));
+    mockAnnouncements.forEach(a => {
+      if (!deletedAnnIds.includes(a.id)) annMap.set(a.id, a);
+    });
+    localAnns.forEach(a => {
+      if (!deletedAnnIds.includes(a.id)) annMap.set(a.id, a);
+    });
     supabaseAnns.forEach(a => annMap.set(a.id, a));
 
     return Array.from(annMap.values())
-      .filter(a => !deletedAnnIds.includes(a.id))
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   },
 
