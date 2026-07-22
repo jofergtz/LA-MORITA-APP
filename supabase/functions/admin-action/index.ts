@@ -15,20 +15,20 @@ serve(async (req) => {
   try {
     const { action, payload, password } = await req.json();
 
-    const ADMIN_PASSWORD = Deno.env.get('ADMIN_PASSWORD') || 'LarryO405';
-    const JUNTA_PASSWORD = Deno.env.get('JUNTA_PASSWORD') || 'JuntaVecinal2026';
+    const ADMIN_PASSWORD = Deno.env.get('ADMIN_PASSWORD');
+    const JUNTA_PASSWORD = Deno.env.get('JUNTA_PASSWORD');
 
     let isAuthorized = false;
 
     // Announcements accept both ADMIN_PASSWORD and JUNTA_PASSWORD
     if (['createAnnouncement', 'updateAnnouncement', 'deleteAnnouncement'].includes(action)) {
-      if (password && (password === ADMIN_PASSWORD || password === JUNTA_PASSWORD)) {
+      if (password && ((ADMIN_PASSWORD && password === ADMIN_PASSWORD) || (JUNTA_PASSWORD && password === JUNTA_PASSWORD))) {
         isAuthorized = true;
       }
     } 
     // Deleting publications or users requires ADMIN_PASSWORD
     else if (['deletePublication', 'deleteUser'].includes(action)) {
-      if (password && password === ADMIN_PASSWORD) {
+      if (password && ADMIN_PASSWORD && password === ADMIN_PASSWORD) {
         isAuthorized = true;
       }
     }
