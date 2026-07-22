@@ -18,30 +18,30 @@ import InstallPrompt from './components/InstallPrompt';
 import { User, Publication, Request, Message, Notification, ThankYou, PublicationType, CategoryType, Announcement } from './types';
 import { mockUsers, mockPublications, mockRequests, mockMessages, mockNotifications, mockThankYous, mockAnnouncements, guestUser } from './mockData';
 import { api } from './services/api';
+import { safeStorage } from './lib/storage';
 import { Leaf, Heart, Plus, User as UserIcon, ShieldAlert, Sparkles, MessageCircle, Check, Megaphone } from 'lucide-react';
 
-const DATA_VERSION = 'v10_guest_default_pass_update_2026';
+const DATA_VERSION = 'v11_safe_storage_2026';
 export const ADMIN_PASSWORD = 'LarryO405';
 export const JUNTA_PASSWORD = 'JuntaVecinal2026';
 
 function getInitialData<T>(key: string, fallback: T): T {
   try {
-    const version = localStorage.getItem('morita_data_version');
+    const version = safeStorage.getItem<string>('morita_data_version', '');
     if (version !== DATA_VERSION) {
-      localStorage.setItem('morita_data_version', DATA_VERSION);
-      localStorage.removeItem('morita_users');
-      localStorage.removeItem('morita_currentUser');
-      localStorage.removeItem('morita_publications');
-      localStorage.removeItem('morita_requests');
-      localStorage.removeItem('morita_messages');
-      localStorage.removeItem('morita_notifications');
-      localStorage.removeItem('morita_thankYous');
-      localStorage.removeItem('morita_announcements');
-      localStorage.setItem(key, JSON.stringify(fallback));
+      safeStorage.setItem('morita_data_version', DATA_VERSION);
+      safeStorage.removeItem('morita_users');
+      safeStorage.removeItem('morita_currentUser');
+      safeStorage.removeItem('morita_publications');
+      safeStorage.removeItem('morita_requests');
+      safeStorage.removeItem('morita_messages');
+      safeStorage.removeItem('morita_notifications');
+      safeStorage.removeItem('morita_thankYous');
+      safeStorage.removeItem('morita_announcements');
+      safeStorage.setItem(key, fallback);
       return fallback;
     }
-    const stored = localStorage.getItem(key);
-    return stored ? JSON.parse(stored) : fallback;
+    return safeStorage.getItem<T>(key, fallback);
   } catch (e) {
     return fallback;
   }
@@ -103,19 +103,18 @@ export default function App() {
 
   // Favorites State (stored per-user ID)
   const [favorites, setFavorites] = useState<string[]>(() => {
-    const stored = localStorage.getItem(`morita_favorites_${currentUser.id}`);
-    return stored ? JSON.parse(stored) : [];
+    return safeStorage.getItem<string[]>(`morita_favorites_${currentUser.id}`, []);
   });
 
   // Whenever currentUser.id changes, load favorites for that user
   useEffect(() => {
-    const stored = localStorage.getItem(`morita_favorites_${currentUser.id}`);
-    setFavorites(stored ? JSON.parse(stored) : []);
+    const stored = safeStorage.getItem<string[]>(`morita_favorites_${currentUser.id}`, []);
+    setFavorites(stored);
   }, [currentUser.id]);
 
   // Whenever favorites changes (or currentUser.id), save it to localStorage
   useEffect(() => {
-    localStorage.setItem(`morita_favorites_${currentUser.id}`, JSON.stringify(favorites));
+    safeStorage.setItem(`morita_favorites_${currentUser.id}`, favorites);
   }, [favorites, currentUser.id]);
 
   // Navigation and Modal States
@@ -130,56 +129,52 @@ export default function App() {
   const [selectedRequestIdForChat, setSelectedRequestIdForChat] = useState<string | null>(null);
   const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState<boolean>(() => {
-    const stored = localStorage.getItem('morita_adminLoggedIn');
-    if (stored !== null) return stored === 'true';
-    return false; // Default to guest mode on fresh install / first launch
+    return safeStorage.getItem<boolean>('morita_adminLoggedIn', false);
   });
   const [isJuntaModalOpen, setIsJuntaModalOpen] = useState(false);
   const [isJuntaLoggedIn, setIsJuntaLoggedIn] = useState<boolean>(() => {
-    const stored = localStorage.getItem('morita_juntaLoggedIn');
-    if (stored !== null) return stored === 'true';
-    return false;
+    return safeStorage.getItem<boolean>('morita_juntaLoggedIn', false);
   });
 
-  // Synchronize localStorage on states changes
+  // Synchronize localStorage safely on states changes
   useEffect(() => {
-    localStorage.setItem('morita_users', JSON.stringify(users));
+    safeStorage.setItem('morita_users', users);
   }, [users]);
 
   useEffect(() => {
-    localStorage.setItem('morita_currentUser', JSON.stringify(currentUser));
+    safeStorage.setItem('morita_currentUser', currentUser);
   }, [currentUser]);
 
   useEffect(() => {
-    localStorage.setItem('morita_publications', JSON.stringify(publications));
+    safeStorage.setItem('morita_publications', publications);
   }, [publications]);
 
   useEffect(() => {
-    localStorage.setItem('morita_requests', JSON.stringify(requests));
+    safeStorage.setItem('morita_requests', requests);
   }, [requests]);
 
   useEffect(() => {
-    localStorage.setItem('morita_messages', JSON.stringify(messages));
+    safeStorage.setItem('morita_messages', messages);
   }, [messages]);
 
   useEffect(() => {
-    localStorage.setItem('morita_notifications', JSON.stringify(notifications));
+    safeStorage.setItem('morita_notifications', notifications);
   }, [notifications]);
 
   useEffect(() => {
-    localStorage.setItem('morita_thankYous', JSON.stringify(thankYous));
+    safeStorage.setItem('morita_thankYous', thankYous);
   }, [thankYous]);
 
   useEffect(() => {
-    localStorage.setItem('morita_announcements', JSON.stringify(announcements));
+    safeStorage.setItem('morita_announcements', announcements);
   }, [announcements]);
 
   useEffect(() => {
-    localStorage.setItem('morita_adminLoggedIn', String(isAdminLoggedIn));
+    safeStorage.setItem('morita_adminLoggedIn', isAdminLoggedIn);
   }, [isAdminLoggedIn]);
 
   useEffect(() => {
-    localStorage.setItem('morita_juntaLoggedIn', String(isJuntaLoggedIn));
+    safeStorage.setItem('morita_juntaLoggedIn', isJuntaLoggedIn);
   }, [isJuntaLoggedIn]);
 
   // Load data from Supabase Cloud on mount & poll every 5 seconds for cross-device sync

@@ -1,6 +1,7 @@
 import { supabase, isSupabaseConfigured } from '../lib/supabaseClient';
 import { User, Publication, Request, Message, Notification, ThankYou, Announcement } from '../types';
 import { mockUsers, mockPublications, mockRequests, mockMessages, mockNotifications, mockThankYous, mockAnnouncements } from '../mockData';
+import { safeStorage } from '../lib/storage';
 
 // Storage keys for local persistence fallback
 const STORAGE_KEYS = {
@@ -18,24 +19,14 @@ const STORAGE_KEYS = {
  * Get item from LocalStorage with mock fallback
  */
 function getLocalData<T>(key: string, fallback: T): T {
-  try {
-    const saved = localStorage.getItem(key);
-    return saved ? JSON.parse(saved) : fallback;
-  } catch (err) {
-    console.error(`Error reading ${key} from localStorage:`, err);
-    return fallback;
-  }
+  return safeStorage.getItem<T>(key, fallback);
 }
 
 /**
- * Set item in LocalStorage
+ * Set item in LocalStorage safely
  */
 function setLocalData<T>(key: string, value: T): void {
-  try {
-    localStorage.setItem(key, JSON.stringify(value));
-  } catch (err) {
-    console.error(`Error saving ${key} to localStorage:`, err);
-  }
+  safeStorage.setItem(key, value);
 }
 
 /* ============================================================================
@@ -46,12 +37,17 @@ export const api = {
   // 1. USERS / PROFILES
   async getUsers(): Promise<User[]> {
     if (isSupabaseConfigured() && supabase) {
-      const { data, error } = await supabase.from('profiles').select('*');
-      if (error) {
-        console.error('Supabase getUsers error:', error);
+      try {
+        const { data, error } = await supabase.from('profiles').select('*');
+        if (error) {
+          console.warn('Supabase getUsers notice (falling back to local data):', error.message || error);
+          return getLocalData(STORAGE_KEYS.USERS, mockUsers);
+        }
+        return data && data.length > 0 ? data : mockUsers;
+      } catch (err) {
+        console.warn('Supabase getUsers catch:', err);
         return getLocalData(STORAGE_KEYS.USERS, mockUsers);
       }
-      return data && data.length > 0 ? data : mockUsers;
     }
     return getLocalData(STORAGE_KEYS.USERS, mockUsers);
   },
@@ -72,7 +68,7 @@ export const api = {
           is_admin: updatedUser.isAdmin || false,
           updated_at: new Date().toISOString()
         });
-      if (error) console.error('Supabase updateUserProfile error:', error);
+      if (error) console.warn('Supabase updateUserProfile notice:', error.message || error);
     }
     const users = getLocalData<User[]>(STORAGE_KEYS.USERS, mockUsers);
     const index = users.findIndex(u => u.id === updatedUser.id);
@@ -142,7 +138,7 @@ export const api = {
         is_active: newPub.isActive,
         created_at: newPub.createdAt
       });
-      if (error) console.error('Supabase createPublication error:', error);
+      if (error) console.warn('Supabase createPublication notice:', error.message || error);
     }
 
     const current = getLocalData<Publication[]>(STORAGE_KEYS.PUBLICATIONS, mockPublications);
@@ -170,7 +166,7 @@ export const api = {
         is_active: pub.isActive ?? true,
         created_at: pub.createdAt
       });
-      if (error) console.error('Supabase updatePublication error:', error);
+      if (error) console.warn('Supabase updatePublication notice:', error.message || error);
     }
     const current = getLocalData<Publication[]>(STORAGE_KEYS.PUBLICATIONS, mockPublications);
     const updated = current.map(p => p.id === pub.id ? pub : p);
@@ -181,7 +177,7 @@ export const api = {
   async deletePublication(id: string): Promise<boolean> {
     if (isSupabaseConfigured() && supabase) {
       const { error } = await supabase.from('publications').delete().eq('id', id);
-      if (error) console.error('Supabase deletePublication error:', error);
+      if (error) console.warn('Supabase deletePublication notice:', error.message || error);
     }
     const current = getLocalData<Publication[]>(STORAGE_KEYS.PUBLICATIONS, mockPublications);
     const updated = current.filter(p => p.id !== id);
