@@ -76,9 +76,15 @@ export default function RequestsPanel({
   }, [selectedRequest, allUsers, currentUser.id]);
 
   const cleanPhone = (phoneStr: string) => {
-    const clean = phoneStr.replace(/[^\d+]/g, '');
-    if (!clean.startsWith('+') && !clean.startsWith('591')) {
-      return '591' + clean;
+    if (!phoneStr) return '';
+    let clean = phoneStr.replace(/[^\d]/g, '');
+    if (clean.startsWith('549') && clean.length > 8) {
+      clean = clean.slice(3);
+    } else if (clean.startsWith('54') && clean.length > 8) {
+      clean = clean.slice(2);
+    }
+    if (!clean.startsWith('591')) {
+      clean = '591' + clean;
     }
     return clean;
   };

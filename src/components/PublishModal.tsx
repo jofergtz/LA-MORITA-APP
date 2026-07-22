@@ -918,7 +918,7 @@ export default function PublishModal({ isOpen, onClose, currentUser, publication
                     loading="lazy"
                     allowFullScreen
                     referrerPolicy="no-referrer"
-                    src={`https://maps.google.com/maps?q=${encodeURIComponent((zone || 'La Morita, Escobar') + ', Buenos Aires, Argentina')}&t=&z=15&ie=UTF8&iwloc=&output=embed`}
+                    src={`https://maps.google.com/maps?q=${encodeURIComponent((zone || 'Barrio La Morita, Santa Cruz') + ', Bolivia')}&t=&z=15&ie=UTF8&iwloc=&output=embed`}
                   ></iframe>
                 </div>
 

@@ -63,6 +63,20 @@ export default function UserProfileModal({
     }
   }, [userId, isOpen, userPublications.length]);
 
+  const cleanPhone = (phoneStr: string) => {
+    if (!phoneStr) return '';
+    let clean = phoneStr.replace(/[^\d]/g, '');
+    if (clean.startsWith('549') && clean.length > 8) {
+      clean = clean.slice(3);
+    } else if (clean.startsWith('54') && clean.length > 8) {
+      clean = clean.slice(2);
+    }
+    if (!clean.startsWith('591')) {
+      clean = '591' + clean;
+    }
+    return clean;
+  };
+
   if (!isOpen || !user) return null;
 
   const isOwnProfile = user.id === currentUser.id;
@@ -216,7 +230,7 @@ export default function UserProfileModal({
                 </div>
                 {!isOwnProfile && (
                   <a
-                    href={`https://wa.me/${user.phone.replace(/[^\d+]/g, '').startsWith('591') || user.phone.replace(/[^\d+]/g, '').startsWith('+591') ? user.phone.replace(/[^\d+]/g, '') : '591' + user.phone.replace(/[^\d+]/g, '')}?text=${encodeURIComponent(`Hola ${user.name}! Te escribo desde La Morita, vi tu perfil vecinal.`)}`}
+                    href={`https://wa.me/${cleanPhone(user.phone)}?text=${encodeURIComponent(`Hola ${user.name}! Te escribo desde La Morita, vi tu perfil vecinal.`)}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold cursor-pointer transition-colors shadow-3xs"

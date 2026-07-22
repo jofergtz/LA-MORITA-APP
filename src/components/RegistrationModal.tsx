@@ -582,7 +582,7 @@ export default function RegistrationModal({
                   <Phone className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-morita-charcoal/40" />
                   <input
                     type="tel"
-                    placeholder="Ej: 11-3344-5566"
+                    placeholder="Ej: 70406010 o 77045678"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
                     className="w-full text-xs rounded-lg border border-morita-sand pl-8 pr-2.5 py-2 bg-white focus:ring-1 focus:ring-morita-mulberry/40"
@@ -620,7 +620,7 @@ export default function RegistrationModal({
                 onClick={() => {
                   setShowMapAssistant(!showMapAssistant);
                   if (!mapSearchText) {
-                    setMapSearchText(zone || 'La Morita, Escobar, Buenos Aires');
+                    setMapSearchText(zone || 'Barrio La Morita, Santa Cruz de la Sierra, Bolivia');
                   }
                 }}
                 className={`text-[10px] font-bold px-2 py-0.5 rounded-md border flex items-center gap-1 cursor-pointer transition-all ${
