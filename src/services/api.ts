@@ -13,7 +13,27 @@ const STORAGE_KEYS = {
   THANK_YOUS: 'morita_thankYous',
   FAVORITES: 'morita_favorites',
   ANNOUNCEMENTS: 'morita_announcements',
+  DELETED_USERS: 'morita_deleted_users',
+  DELETED_PUBS: 'morita_deleted_pubs',
+  DELETED_ANNOUNCEMENTS: 'morita_deleted_announcements',
 };
+
+/**
+ * Get list of deleted IDs from LocalStorage
+ */
+function getDeletedIds(key: string): string[] {
+  return safeStorage.getItem<string[]>(key, []);
+}
+
+/**
+ * Add a deleted ID to LocalStorage
+ */
+function addDeletedId(key: string, id: string): void {
+  const ids = getDeletedIds(key);
+  if (!ids.includes(id)) {
+    safeStorage.setItem(key, [...ids, id]);
+  }
+}
 
 /**
  * Get item from LocalStorage with mock fallback
@@ -36,20 +56,37 @@ function setLocalData<T>(key: string, value: T): void {
 export const api = {
   // 1. USERS / PROFILES
   async getUsers(): Promise<User[]> {
+    const deletedUserIds = getDeletedIds(STORAGE_KEYS.DELETED_USERS);
+    const localUsers = getLocalData<User[]>(STORAGE_KEYS.USERS, mockUsers);
+
+    let supabaseUsers: User[] = [];
     if (isSupabaseConfigured() && supabase) {
       try {
         const { data, error } = await supabase.from('profiles').select('*');
-        if (error) {
-          console.warn('Supabase getUsers notice (falling back to local data):', error.message || error);
-          return getLocalData(STORAGE_KEYS.USERS, mockUsers);
+        if (!error && data) {
+          supabaseUsers = data.map((u: any) => ({
+            id: u.id,
+            name: u.name,
+            email: u.email,
+            phone: u.phone,
+            avatar: u.avatar,
+            zone: u.zone,
+            bio: u.bio,
+            skills: u.skills,
+            isAdmin: u.is_admin || u.isAdmin || false
+          }));
         }
-        return data && data.length > 0 ? data : mockUsers;
       } catch (err) {
         console.warn('Supabase getUsers catch:', err);
-        return getLocalData(STORAGE_KEYS.USERS, mockUsers);
       }
     }
-    return getLocalData(STORAGE_KEYS.USERS, mockUsers);
+
+    const userMap = new Map<string, User>();
+    mockUsers.forEach(u => userMap.set(u.id, u));
+    localUsers.forEach(u => userMap.set(u.id, u));
+    supabaseUsers.forEach(u => userMap.set(u.id, u));
+
+    return Array.from(userMap.values()).filter(u => !deletedUserIds.includes(u.id));
   },
 
   async updateUserProfile(updatedUser: User): Promise<User> {
@@ -84,32 +121,48 @@ export const api = {
 
   // 2. PUBLICATIONS
   async getPublications(): Promise<Publication[]> {
+    const deletedPubIds = getDeletedIds(STORAGE_KEYS.DELETED_PUBS);
+    const localPubs = getLocalData<Publication[]>(STORAGE_KEYS.PUBLICATIONS, mockPublications);
+
+    let supabasePubs: Publication[] = [];
     if (isSupabaseConfigured() && supabase) {
-      const { data, error } = await supabase
-        .from('publications')
-        .select('*')
-        .order('created_at', { ascending: false });
-      if (!error && data && data.length > 0) {
-        return data.map(item => ({
-          id: item.id,
-          userId: item.user_id,
-          authorName: item.author_name,
-          authorAvatar: item.author_avatar,
-          type: item.type,
-          title: item.title,
-          category: item.category,
-          description: item.description,
-          priceType: item.price_type,
-          priceValue: item.price_value,
-          photo: item.photo,
-          zone: item.zone,
-          availability: item.availability,
-          isActive: item.is_active ?? true,
-          createdAt: item.created_at
-        }));
+      try {
+        const { data, error } = await supabase
+          .from('publications')
+          .select('*')
+          .order('created_at', { ascending: false });
+        if (!error && data) {
+          supabasePubs = data.map((item: any) => ({
+            id: item.id,
+            userId: item.user_id,
+            authorName: item.author_name,
+            authorAvatar: item.author_avatar,
+            type: item.type,
+            title: item.title,
+            category: item.category,
+            description: item.description,
+            priceType: item.price_type,
+            priceValue: item.price_value,
+            photo: item.photo,
+            zone: item.zone,
+            availability: item.availability,
+            isActive: item.is_active ?? true,
+            createdAt: item.created_at
+          }));
+        }
+      } catch (err) {
+        console.warn('Supabase getPublications catch:', err);
       }
     }
-    return getLocalData(STORAGE_KEYS.PUBLICATIONS, mockPublications);
+
+    const pubMap = new Map<string, Publication>();
+    mockPublications.forEach(p => pubMap.set(p.id, p));
+    localPubs.forEach(p => pubMap.set(p.id, p));
+    supabasePubs.forEach(p => pubMap.set(p.id, p));
+
+    return Array.from(pubMap.values())
+      .filter(p => !deletedPubIds.includes(p.id))
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   },
 
   async createPublication(pub: Omit<Publication, 'id' | 'createdAt'>): Promise<Publication> {
@@ -175,6 +228,8 @@ export const api = {
   },
 
   async deletePublication(id: string, password?: string): Promise<boolean> {
+    addDeletedId(STORAGE_KEYS.DELETED_PUBS, id);
+
     if (isSupabaseConfigured() && supabase) {
       try {
         const { data, error } = await supabase.functions.invoke('admin-action', {
@@ -194,6 +249,8 @@ export const api = {
   },
 
   async deleteUser(id: string, password?: string): Promise<boolean> {
+    addDeletedId(STORAGE_KEYS.DELETED_USERS, id);
+
     if (isSupabaseConfigured() && supabase) {
       try {
         const { data, error } = await supabase.functions.invoke('admin-action', {
@@ -214,27 +271,40 @@ export const api = {
 
   // 3. REQUESTS
   async getRequests(): Promise<Request[]> {
+    const localReqs = getLocalData<Request[]>(STORAGE_KEYS.REQUESTS, mockRequests);
+    let supabaseReqs: Request[] = [];
+
     if (isSupabaseConfigured() && supabase) {
-      const { data, error } = await supabase.from('requests').select('*').order('created_at', { ascending: false });
-      if (!error && data && data.length > 0) {
-        return data.map(r => ({
-          id: r.id,
-          publicationId: r.publication_id,
-          publicationTitle: r.publication_title,
-          publicationType: r.publication_type,
-          publisherId: r.publisher_id,
-          requesterId: r.requester_id,
-          requesterName: r.requester_name,
-          requesterAvatar: r.requester_avatar,
-          comment: r.comment,
-          quantity: r.quantity,
-          proposedDateTime: r.proposed_date_time,
-          status: r.status,
-          createdAt: r.created_at
-        }));
+      try {
+        const { data, error } = await supabase.from('requests').select('*').order('created_at', { ascending: false });
+        if (!error && data) {
+          supabaseReqs = data.map(r => ({
+            id: r.id,
+            publicationId: r.publication_id,
+            publicationTitle: r.publication_title,
+            publicationType: r.publication_type,
+            publisherId: r.publisher_id,
+            requesterId: r.requester_id,
+            requesterName: r.requester_name,
+            requesterAvatar: r.requester_avatar,
+            comment: r.comment,
+            quantity: r.quantity,
+            proposedDateTime: r.proposed_date_time,
+            status: r.status,
+            createdAt: r.created_at
+          }));
+        }
+      } catch (err) {
+        console.warn('Supabase getRequests catch:', err);
       }
     }
-    return getLocalData(STORAGE_KEYS.REQUESTS, mockRequests);
+
+    const reqMap = new Map<string, Request>();
+    mockRequests.forEach(r => reqMap.set(r.id, r));
+    localReqs.forEach(r => reqMap.set(r.id, r));
+    supabaseReqs.forEach(r => reqMap.set(r.id, r));
+
+    return Array.from(reqMap.values()).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   },
 
   async createRequest(req: Omit<Request, 'id' | 'createdAt'>): Promise<Request> {
@@ -279,19 +349,32 @@ export const api = {
 
   // 4. MESSAGES
   async getMessages(): Promise<Message[]> {
+    const localMsgs = getLocalData<Message[]>(STORAGE_KEYS.MESSAGES, mockMessages);
+    let supabaseMsgs: Message[] = [];
+
     if (isSupabaseConfigured() && supabase) {
-      const { data, error } = await supabase.from('messages').select('*').order('created_at', { ascending: true });
-      if (!error && data && data.length > 0) {
-        return data.map(m => ({
-          id: m.id,
-          requestId: m.request_id,
-          senderId: m.sender_id,
-          text: m.text,
-          createdAt: m.created_at
-        }));
+      try {
+        const { data, error } = await supabase.from('messages').select('*').order('created_at', { ascending: true });
+        if (!error && data) {
+          supabaseMsgs = data.map(m => ({
+            id: m.id,
+            requestId: m.request_id,
+            senderId: m.sender_id,
+            text: m.text,
+            createdAt: m.created_at
+          }));
+        }
+      } catch (err) {
+        console.warn('Supabase getMessages catch:', err);
       }
     }
-    return getLocalData(STORAGE_KEYS.MESSAGES, mockMessages);
+
+    const msgMap = new Map<string, Message>();
+    mockMessages.forEach(m => msgMap.set(m.id, m));
+    localMsgs.forEach(m => msgMap.set(m.id, m));
+    supabaseMsgs.forEach(m => msgMap.set(m.id, m));
+
+    return Array.from(msgMap.values()).sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
   },
 
   async sendMessage(msg: Omit<Message, 'id' | 'createdAt'>): Promise<Message> {
@@ -319,22 +402,35 @@ export const api = {
 
   // 5. NOTIFICATIONS
   async getNotifications(): Promise<Notification[]> {
+    const localNotifs = getLocalData<Notification[]>(STORAGE_KEYS.NOTIFICATIONS, mockNotifications);
+    let supabaseNotifs: Notification[] = [];
+
     if (isSupabaseConfigured() && supabase) {
-      const { data, error } = await supabase.from('notifications').select('*').order('created_at', { ascending: false });
-      if (!error && data && data.length > 0) {
-        return data.map(n => ({
-          id: n.id,
-          userId: n.user_id,
-          type: n.type,
-          title: n.title,
-          message: n.message,
-          requestId: n.request_id,
-          createdAt: n.created_at,
-          read: n.read
-        }));
+      try {
+        const { data, error } = await supabase.from('notifications').select('*').order('created_at', { ascending: false });
+        if (!error && data) {
+          supabaseNotifs = data.map(n => ({
+            id: n.id,
+            userId: n.user_id,
+            type: n.type,
+            title: n.title,
+            message: n.message,
+            requestId: n.request_id,
+            createdAt: n.created_at,
+            read: n.read
+          }));
+        }
+      } catch (err) {
+        console.warn('Supabase getNotifications catch:', err);
       }
     }
-    return getLocalData(STORAGE_KEYS.NOTIFICATIONS, mockNotifications);
+
+    const notifMap = new Map<string, Notification>();
+    mockNotifications.forEach(n => notifMap.set(n.id, n));
+    localNotifs.forEach(n => notifMap.set(n.id, n));
+    supabaseNotifs.forEach(n => notifMap.set(n.id, n));
+
+    return Array.from(notifMap.values()).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   },
 
   async createNotification(notif: Notification): Promise<Notification> {
@@ -358,19 +454,35 @@ export const api = {
 
   // 6. ANNOUNCEMENTS
   async getAnnouncements(): Promise<Announcement[]> {
+    const deletedAnnIds = getDeletedIds(STORAGE_KEYS.DELETED_ANNOUNCEMENTS);
+    const localAnns = getLocalData<Announcement[]>(STORAGE_KEYS.ANNOUNCEMENTS, mockAnnouncements);
+
+    let supabaseAnns: Announcement[] = [];
     if (isSupabaseConfigured() && supabase) {
-      const { data, error } = await supabase.from('announcements').select('*').order('date', { ascending: false });
-      if (!error && data && data.length > 0) {
-        return data.map(a => ({
-          id: a.id,
-          title: a.title,
-          content: a.content,
-          date: a.date,
-          important: a.important
-        }));
+      try {
+        const { data, error } = await supabase.from('announcements').select('*').order('date', { ascending: false });
+        if (!error && data) {
+          supabaseAnns = data.map((a: any) => ({
+            id: a.id,
+            title: a.title,
+            content: a.content,
+            date: a.date,
+            important: a.important
+          }));
+        }
+      } catch (err) {
+        console.warn('Supabase getAnnouncements catch:', err);
       }
     }
-    return getLocalData(STORAGE_KEYS.ANNOUNCEMENTS, mockAnnouncements);
+
+    const annMap = new Map<string, Announcement>();
+    mockAnnouncements.forEach(a => annMap.set(a.id, a));
+    localAnns.forEach(a => annMap.set(a.id, a));
+    supabaseAnns.forEach(a => annMap.set(a.id, a));
+
+    return Array.from(annMap.values())
+      .filter(a => !deletedAnnIds.includes(a.id))
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   },
 
   async createAnnouncement(ann: Omit<Announcement, 'id' | 'date'>, password?: string): Promise<Announcement> {
@@ -439,6 +551,8 @@ export const api = {
   },
 
   async deleteAnnouncement(id: string, password?: string): Promise<boolean> {
+    addDeletedId(STORAGE_KEYS.DELETED_ANNOUNCEMENTS, id);
+
     if (isSupabaseConfigured() && supabase) {
       try {
         const { data, error } = await supabase.functions.invoke('admin-action', {
