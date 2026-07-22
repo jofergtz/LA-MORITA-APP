@@ -93,8 +93,10 @@ export const api = {
     localUsers.forEach(u => {
       if (!deletedUserIds.includes(u.id)) userMap.set(u.id, u);
     });
-    // ALWAYS override and add Supabase live cloud users (never filtered by local deleted list)
-    supabaseUsers.forEach(u => userMap.set(u.id, u));
+    // Add Supabase live cloud users ONLY if not in deleted list
+    supabaseUsers.forEach(u => {
+      if (!deletedUserIds.includes(u.id)) userMap.set(u.id, u);
+    });
 
     // Auto-sync any local users that exist in localStorage but are missing in Supabase
     if (isSupabaseConfigured() && supabase) {
@@ -157,6 +159,7 @@ export const api = {
   // 2. PUBLICATIONS
   async getPublications(): Promise<Publication[]> {
     const deletedPubIds = getDeletedIds(STORAGE_KEYS.DELETED_PUBS);
+    const deletedUserIds = getDeletedIds(STORAGE_KEYS.DELETED_USERS);
     const localPubs = getLocalData<Publication[]>(STORAGE_KEYS.PUBLICATIONS, mockPublications);
 
     // Fetch live users map first to dynamically enrich publication author avatars
@@ -185,7 +188,7 @@ export const api = {
               title: item.title || '',
               category: item.category || 'Otros',
               description: item.description || '',
-              priceType: item.price_type || item.priceType || 'fijo',
+              priceType: item.price_type || item.priceType || 'monto',
               priceValue: item.price_value || item.priceValue || '',
               photo: item.photo || '',
               zone: item.zone || 'Barrio La Morita',
@@ -201,9 +204,9 @@ export const api = {
     }
 
     const pubMap = new Map<string, Publication>();
-    // Add mock publications unless deleted locally
+    // Add mock publications unless deleted locally or author is deleted
     mockPublications.forEach(p => {
-      if (!deletedPubIds.includes(p.id)) {
+      if (!deletedPubIds.includes(p.id) && !deletedUserIds.includes(p.userId)) {
         const author = liveUserMap.get(p.userId);
         pubMap.set(p.id, {
           ...p,
@@ -212,9 +215,9 @@ export const api = {
         });
       }
     });
-    // Add local publications unless deleted locally
+    // Add local publications unless deleted locally or author is deleted
     localPubs.forEach(p => {
-      if (!deletedPubIds.includes(p.id)) {
+      if (!deletedPubIds.includes(p.id) && !deletedUserIds.includes(p.userId)) {
         const author = liveUserMap.get(p.userId);
         pubMap.set(p.id, {
           ...p,
@@ -223,9 +226,9 @@ export const api = {
         });
       }
     });
-    // ALWAYS override with Supabase live cloud publications (excluding deleted ones)
+    // Add Supabase live cloud publications (excluding deleted ones or deleted user ones)
     supabasePubs.forEach(p => {
-      if (!deletedPubIds.includes(p.id)) {
+      if (!deletedPubIds.includes(p.id) && !deletedUserIds.includes(p.userId)) {
         pubMap.set(p.id, p);
       }
     });
@@ -336,10 +339,18 @@ export const api = {
   async deleteUser(id: string, password?: string): Promise<boolean> {
     addDeletedId(STORAGE_KEYS.DELETED_USERS, id);
 
+    // Get all publications by this user and add their IDs to DELETED_PUBS blacklist
+    const currentPubs = getLocalData<Publication[]>(STORAGE_KEYS.PUBLICATIONS, mockPublications);
+    const userPubs = currentPubs.filter(p => p.userId === id);
+    userPubs.forEach(p => addDeletedId(STORAGE_KEYS.DELETED_PUBS, p.id));
+
     if (isSupabaseConfigured() && supabase) {
       try {
         // Direct deletion of user's publications and profile in Supabase
         await supabase.from('publications').delete().eq('user_id', id);
+        await supabase.from('publications').delete().eq('userId', id);
+        await supabase.from('requests').delete().eq('requester_id', id);
+        await supabase.from('requests').delete().eq('requesterId', id);
         await supabase.from('profiles').delete().eq('id', id);
       } catch (err) {
         console.warn('Direct Supabase deleteUser catch:', err);
@@ -353,9 +364,15 @@ export const api = {
         // Edge function optional fallback
       }
     }
-    const current = getLocalData<User[]>(STORAGE_KEYS.USERS, mockUsers);
-    const updated = current.filter(u => u.id !== id);
-    setLocalData(STORAGE_KEYS.USERS, updated);
+
+    // Clean up local storage
+    const currentUsers = getLocalData<User[]>(STORAGE_KEYS.USERS, mockUsers);
+    const updatedUsers = currentUsers.filter(u => u.id !== id);
+    setLocalData(STORAGE_KEYS.USERS, updatedUsers);
+
+    const updatedPubs = currentPubs.filter(p => p.userId !== id);
+    setLocalData(STORAGE_KEYS.PUBLICATIONS, updatedPubs);
+
     return true;
   },
 
@@ -389,10 +406,17 @@ export const api = {
       }
     }
 
+    const deletedUserIds = getDeletedIds(STORAGE_KEYS.DELETED_USERS);
     const reqMap = new Map<string, Request>();
-    mockRequests.forEach(r => reqMap.set(r.id, r));
-    localReqs.forEach(r => reqMap.set(r.id, r));
-    supabaseReqs.forEach(r => reqMap.set(r.id, r));
+    mockRequests.forEach(r => {
+      if (!deletedUserIds.includes(r.requesterId) && !deletedUserIds.includes(r.publisherId)) reqMap.set(r.id, r);
+    });
+    localReqs.forEach(r => {
+      if (!deletedUserIds.includes(r.requesterId) && !deletedUserIds.includes(r.publisherId)) reqMap.set(r.id, r);
+    });
+    supabaseReqs.forEach(r => {
+      if (!deletedUserIds.includes(r.requesterId) && !deletedUserIds.includes(r.publisherId)) reqMap.set(r.id, r);
+    });
 
     return Array.from(reqMap.values()).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   },
