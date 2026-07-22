@@ -49,6 +49,8 @@ function setLocalData<T>(key: string, value: T): void {
   safeStorage.setItem(key, value);
 }
 
+const DEFAULT_NEUTRAL_AVATAR = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 24 24" fill="%239ca3af"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>';
+
 /* ============================================================================
    SERVICE API INTERFACE
    ============================================================================ */
@@ -69,7 +71,7 @@ export const api = {
             name: u.name || 'Vecino',
             email: u.email || '',
             phone: u.phone || '',
-            avatar: u.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80',
+            avatar: u.avatar || DEFAULT_NEUTRAL_AVATAR,
             zone: u.zone || 'Barrio La Morita',
             bio: u.bio || '',
             skills: Array.isArray(u.skills) ? u.skills : (typeof u.skills === 'string' ? JSON.parse(u.skills) : []),
@@ -97,10 +99,7 @@ export const api = {
     if (isSupabaseConfigured() && supabase) {
       localUsers.forEach(lu => {
         if (!deletedUserIds.includes(lu.id) && lu.id !== 'guest' && !supabaseUsers.some(su => su.id === lu.id)) {
-          let safeAvatar = lu.avatar || '';
-          if (safeAvatar.startsWith('data:image/') && safeAvatar.length > 400000) {
-            safeAvatar = 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80';
-          }
+          let safeAvatar = lu.avatar || DEFAULT_NEUTRAL_AVATAR;
           supabase.from('profiles').upsert({
             id: lu.id,
             name: lu.name,
@@ -124,12 +123,7 @@ export const api = {
 
   async updateUserProfile(updatedUser: User): Promise<User> {
     if (isSupabaseConfigured() && supabase) {
-      // Ensure avatar is not a giant uncompressed camera string (> 400KB) that breaks PostgREST
-      let safeAvatar = updatedUser.avatar;
-      if (safeAvatar && safeAvatar.startsWith('data:image/') && safeAvatar.length > 400000) {
-        console.warn('Avatar string exceeds safe size, truncating for Supabase sync');
-        safeAvatar = 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80';
-      }
+      let safeAvatar = updatedUser.avatar || DEFAULT_NEUTRAL_AVATAR;
 
       const { error } = await supabase
         .from('profiles')
@@ -164,6 +158,10 @@ export const api = {
     const deletedPubIds = getDeletedIds(STORAGE_KEYS.DELETED_PUBS);
     const localPubs = getLocalData<Publication[]>(STORAGE_KEYS.PUBLICATIONS, mockPublications);
 
+    // Fetch live users map first to dynamically enrich publication author avatars
+    const allLiveUsers = await this.getUsers();
+    const liveUserMap = new Map<string, User>(allLiveUsers.map(u => [u.id, u]));
+
     let supabasePubs: Publication[] = [];
     if (isSupabaseConfigured() && supabase) {
       try {
@@ -172,23 +170,29 @@ export const api = {
           .select('*')
           .order('created_at', { ascending: false });
         if (!error && data) {
-          supabasePubs = data.map((item: any) => ({
-            id: item.id,
-            userId: item.user_id || item.userId || '',
-            authorName: item.author_name || item.authorName || 'Vecino de La Morita',
-            authorAvatar: item.author_avatar || item.authorAvatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80',
-            type: item.type || 'ofrezco',
-            title: item.title || '',
-            category: item.category || 'Otros',
-            description: item.description || '',
-            priceType: item.price_type || item.priceType || 'fijo',
-            priceValue: item.price_value || item.priceValue || '',
-            photo: item.photo || '',
-            zone: item.zone || 'Barrio La Morita',
-            availability: item.availability || '',
-            isActive: item.is_active ?? item.isActive ?? true,
-            createdAt: item.created_at || item.createdAt || new Date().toISOString()
-          }));
+          supabasePubs = data.map((item: any) => {
+            const author = liveUserMap.get(item.user_id || item.userId);
+            const authorAvatar = author?.avatar || item.author_avatar || item.authorAvatar || DEFAULT_NEUTRAL_AVATAR;
+            const authorName = author?.name || item.author_name || item.authorName || 'Vecino de La Morita';
+
+            return {
+              id: item.id,
+              userId: item.user_id || item.userId || '',
+              authorName,
+              authorAvatar,
+              type: item.type || 'ofrezco',
+              title: item.title || '',
+              category: item.category || 'Otros',
+              description: item.description || '',
+              priceType: item.price_type || item.priceType || 'fijo',
+              priceValue: item.price_value || item.priceValue || '',
+              photo: item.photo || '',
+              zone: item.zone || 'Barrio La Morita',
+              availability: item.availability || '',
+              isActive: item.is_active ?? item.isActive ?? true,
+              createdAt: item.created_at || item.createdAt || new Date().toISOString()
+            };
+          });
         }
       } catch (err) {
         console.warn('Supabase getPublications catch:', err);
@@ -198,13 +202,27 @@ export const api = {
     const pubMap = new Map<string, Publication>();
     // Add mock publications unless deleted locally
     mockPublications.forEach(p => {
-      if (!deletedPubIds.includes(p.id)) pubMap.set(p.id, p);
+      if (!deletedPubIds.includes(p.id)) {
+        const author = liveUserMap.get(p.userId);
+        pubMap.set(p.id, {
+          ...p,
+          authorAvatar: author?.avatar || p.authorAvatar,
+          authorName: author?.name || p.authorName
+        });
+      }
     });
     // Add local publications unless deleted locally
     localPubs.forEach(p => {
-      if (!deletedPubIds.includes(p.id)) pubMap.set(p.id, p);
+      if (!deletedPubIds.includes(p.id)) {
+        const author = liveUserMap.get(p.userId);
+        pubMap.set(p.id, {
+          ...p,
+          authorAvatar: author?.avatar || p.authorAvatar,
+          authorName: author?.name || p.authorName
+        });
+      }
     });
-    // ALWAYS override and add Supabase live cloud publications (never filtered by local deleted list)
+    // ALWAYS override and add Supabase live cloud publications
     supabasePubs.forEach(p => pubMap.set(p.id, p));
 
     // Auto-sync any local publications that exist in localStorage but are missing in Supabase cloud
@@ -212,29 +230,15 @@ export const api = {
       localPubs.forEach(async (lp) => {
         if (!deletedPubIds.includes(lp.id) && !supabasePubs.some(sp => sp.id === lp.id)) {
           try {
-            let safeAvatar = lp.authorAvatar || '';
-            if (safeAvatar.startsWith('data:image/') && safeAvatar.length > 400000) {
-              safeAvatar = 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80';
-            }
+            const author = liveUserMap.get(lp.userId);
+            let safeAvatar = author?.avatar || lp.authorAvatar || DEFAULT_NEUTRAL_AVATAR;
             let safePhoto = lp.photo || '';
-            if (safePhoto.startsWith('data:image/') && safePhoto.length > 600000) {
-              safePhoto = '';
-            }
 
-            // Ensure profile exists in Supabase first
-            await supabase.from('profiles').upsert({
-              id: lp.userId,
-              name: lp.authorName || 'Vecino de La Morita',
-              avatar: safeAvatar,
-              zone: lp.zone || 'Barrio La Morita',
-              updated_at: new Date().toISOString()
-            });
-
-            // Insert publication
+            // Insert publication directly into Supabase without overwriting profile table
             await supabase.from('publications').upsert({
               id: lp.id,
               user_id: lp.userId,
-              author_name: lp.authorName,
+              author_name: author?.name || lp.authorName,
               author_avatar: safeAvatar,
               type: lp.type,
               title: lp.title,
@@ -268,30 +272,9 @@ export const api = {
     };
 
     if (isSupabaseConfigured() && supabase) {
-      let safeAuthorAvatar = newPub.authorAvatar;
-      if (safeAuthorAvatar && safeAuthorAvatar.startsWith('data:image/') && safeAuthorAvatar.length > 400000) {
-        safeAuthorAvatar = 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80';
-      }
+      let safeAuthorAvatar = newPub.authorAvatar || DEFAULT_NEUTRAL_AVATAR;
+      let safePhoto = newPub.photo || '';
 
-      let safePhoto = newPub.photo;
-      if (safePhoto && safePhoto.startsWith('data:image/') && safePhoto.length > 600000) {
-        safePhoto = '';
-      }
-
-      // Step 1: Ensure user profile exists in Supabase profiles BEFORE inserting publication to prevent FK error
-      try {
-        await supabase.from('profiles').upsert({
-          id: newPub.userId,
-          name: newPub.authorName || 'Vecino de La Morita',
-          avatar: safeAuthorAvatar,
-          zone: newPub.zone || 'Barrio La Morita',
-          updated_at: new Date().toISOString()
-        });
-      } catch (pErr) {
-        console.warn('Pre-publication profile upsert warning:', pErr);
-      }
-
-      // Step 2: Insert publication
       let { error } = await supabase.from('publications').insert({
         id: newPub.id,
         user_id: newPub.userId,
@@ -310,35 +293,8 @@ export const api = {
         created_at: newPub.createdAt
       });
 
-      // If FK 23503 or any error occurred, retry profile upsert + publication insert
       if (error) {
-        console.warn('First createPublication attempt warning:', error.message || error);
-        await supabase.from('profiles').upsert({
-          id: newPub.userId,
-          name: newPub.authorName || 'Vecino de La Morita',
-          avatar: safeAuthorAvatar,
-          zone: newPub.zone || 'Barrio La Morita',
-          updated_at: new Date().toISOString()
-        });
-
-        const retryRes = await supabase.from('publications').insert({
-          id: newPub.id,
-          user_id: newPub.userId,
-          author_name: newPub.authorName,
-          author_avatar: safeAuthorAvatar,
-          type: newPub.type,
-          title: newPub.title,
-          category: newPub.category,
-          description: newPub.description,
-          price_type: newPub.priceType,
-          price_value: newPub.priceValue,
-          photo: safePhoto,
-          zone: newPub.zone,
-          availability: newPub.availability,
-          is_active: newPub.isActive,
-          created_at: newPub.createdAt
-        });
-        if (retryRes.error) console.error('Retry createPublication error:', retryRes.error);
+        console.warn('createPublication error:', error.message || error);
       }
     }
 
@@ -350,28 +306,8 @@ export const api = {
 
   async updatePublication(pub: Publication): Promise<Publication> {
     if (isSupabaseConfigured() && supabase) {
-      let safeAuthorAvatar = pub.authorAvatar;
-      if (safeAuthorAvatar && safeAuthorAvatar.startsWith('data:image/') && safeAuthorAvatar.length > 400000) {
-        safeAuthorAvatar = 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80';
-      }
-
-      let safePhoto = pub.photo;
-      if (safePhoto && safePhoto.startsWith('data:image/') && safePhoto.length > 600000) {
-        safePhoto = '';
-      }
-
-      // Ensure profile exists first
-      try {
-        await supabase.from('profiles').upsert({
-          id: pub.userId,
-          name: pub.authorName || 'Vecino de La Morita',
-          avatar: safeAuthorAvatar,
-          zone: pub.zone || 'Barrio La Morita',
-          updated_at: new Date().toISOString()
-        });
-      } catch (pErr) {
-        console.warn('Pre-update publication profile upsert warning:', pErr);
-      }
+      let safeAuthorAvatar = pub.authorAvatar || DEFAULT_NEUTRAL_AVATAR;
+      let safePhoto = pub.photo || '';
 
       const { error } = await supabase.from('publications').upsert({
         id: pub.id,
