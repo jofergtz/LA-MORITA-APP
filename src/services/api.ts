@@ -151,6 +151,33 @@ export const api = {
     return newPub;
   },
 
+  async updatePublication(pub: Publication): Promise<Publication> {
+    if (isSupabaseConfigured() && supabase) {
+      const { error } = await supabase.from('publications').upsert({
+        id: pub.id,
+        user_id: pub.userId,
+        author_name: pub.authorName,
+        author_avatar: pub.authorAvatar,
+        type: pub.type,
+        title: pub.title,
+        category: pub.category,
+        description: pub.description,
+        price_type: pub.priceType,
+        price_value: pub.priceValue,
+        photo: pub.photo,
+        zone: pub.zone,
+        availability: pub.availability,
+        is_active: pub.isActive ?? true,
+        created_at: pub.createdAt
+      });
+      if (error) console.error('Supabase updatePublication error:', error);
+    }
+    const current = getLocalData<Publication[]>(STORAGE_KEYS.PUBLICATIONS, mockPublications);
+    const updated = current.map(p => p.id === pub.id ? pub : p);
+    setLocalData(STORAGE_KEYS.PUBLICATIONS, updated);
+    return pub;
+  },
+
   async deletePublication(id: string): Promise<boolean> {
     if (isSupabaseConfigured() && supabase) {
       const { error } = await supabase.from('publications').delete().eq('id', id);
@@ -159,6 +186,16 @@ export const api = {
     const current = getLocalData<Publication[]>(STORAGE_KEYS.PUBLICATIONS, mockPublications);
     const updated = current.filter(p => p.id !== id);
     setLocalData(STORAGE_KEYS.PUBLICATIONS, updated);
+    return true;
+  },
+
+  async deleteUser(id: string): Promise<boolean> {
+    if (isSupabaseConfigured() && supabase) {
+      await supabase.from('profiles').delete().eq('id', id);
+    }
+    const current = getLocalData<User[]>(STORAGE_KEYS.USERS, mockUsers);
+    const updated = current.filter(u => u.id !== id);
+    setLocalData(STORAGE_KEYS.USERS, updated);
     return true;
   },
 
@@ -287,6 +324,25 @@ export const api = {
     return getLocalData(STORAGE_KEYS.NOTIFICATIONS, mockNotifications);
   },
 
+  async createNotification(notif: Notification): Promise<Notification> {
+    if (isSupabaseConfigured() && supabase) {
+      await supabase.from('notifications').insert({
+        id: notif.id,
+        user_id: notif.userId,
+        type: notif.type,
+        title: notif.title,
+        message: notif.message,
+        request_id: notif.requestId,
+        read: notif.read ?? false,
+        created_at: notif.createdAt
+      });
+    }
+    const current = getLocalData<Notification[]>(STORAGE_KEYS.NOTIFICATIONS, mockNotifications);
+    const updated = [notif, ...current];
+    setLocalData(STORAGE_KEYS.NOTIFICATIONS, updated);
+    return notif;
+  },
+
   // 6. ANNOUNCEMENTS
   async getAnnouncements(): Promise<Announcement[]> {
     if (isSupabaseConfigured() && supabase) {
@@ -325,5 +381,31 @@ export const api = {
     const updated = [newAnn, ...current];
     setLocalData(STORAGE_KEYS.ANNOUNCEMENTS, updated);
     return newAnn;
+  },
+
+  async updateAnnouncement(ann: Announcement): Promise<Announcement> {
+    if (isSupabaseConfigured() && supabase) {
+      await supabase.from('announcements').upsert({
+        id: ann.id,
+        title: ann.title,
+        content: ann.content,
+        date: ann.date,
+        important: ann.important ?? false
+      });
+    }
+    const current = getLocalData<Announcement[]>(STORAGE_KEYS.ANNOUNCEMENTS, mockAnnouncements);
+    const updated = current.map(a => a.id === ann.id ? ann : a);
+    setLocalData(STORAGE_KEYS.ANNOUNCEMENTS, updated);
+    return ann;
+  },
+
+  async deleteAnnouncement(id: string): Promise<boolean> {
+    if (isSupabaseConfigured() && supabase) {
+      await supabase.from('announcements').delete().eq('id', id);
+    }
+    const current = getLocalData<Announcement[]>(STORAGE_KEYS.ANNOUNCEMENTS, mockAnnouncements);
+    const updated = current.filter(a => a.id !== id);
+    setLocalData(STORAGE_KEYS.ANNOUNCEMENTS, updated);
+    return true;
   }
 };

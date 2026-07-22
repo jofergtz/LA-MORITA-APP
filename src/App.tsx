@@ -17,6 +17,7 @@ import InstallPrompt from './components/InstallPrompt';
 
 import { User, Publication, Request, Message, Notification, ThankYou, PublicationType, CategoryType, Announcement } from './types';
 import { mockUsers, mockPublications, mockRequests, mockMessages, mockNotifications, mockThankYous, mockAnnouncements, guestUser } from './mockData';
+import { api } from './services/api';
 import { Leaf, Heart, Plus, User as UserIcon, ShieldAlert, Sparkles, MessageCircle, Check, Megaphone } from 'lucide-react';
 
 const DATA_VERSION = 'v10_guest_default_pass_update_2026';
@@ -181,6 +182,37 @@ export default function App() {
     localStorage.setItem('morita_juntaLoggedIn', String(isJuntaLoggedIn));
   }, [isJuntaLoggedIn]);
 
+  // Load data from Supabase Cloud on mount & poll every 5 seconds for cross-device sync
+  const loadCloudData = async () => {
+    try {
+      const [cloudPubs, cloudUsers, cloudReqs, cloudMsgs, cloudNotifs, cloudAnns] = await Promise.all([
+        api.getPublications(),
+        api.getUsers(),
+        api.getRequests(),
+        api.getMessages(),
+        api.getNotifications(),
+        api.getAnnouncements(),
+      ]);
+
+      if (cloudPubs && cloudPubs.length > 0) setPublications(cloudPubs);
+      if (cloudUsers && cloudUsers.length > 0) setUsers(cloudUsers);
+      if (cloudReqs && cloudReqs.length > 0) setRequests(cloudReqs);
+      if (cloudMsgs && cloudMsgs.length > 0) setMessages(cloudMsgs);
+      if (cloudNotifs && cloudNotifs.length > 0) setNotifications(cloudNotifs);
+      if (cloudAnns && cloudAnns.length > 0) setAnnouncements(cloudAnns);
+    } catch (err) {
+      console.error('Error loading cloud data from Supabase:', err);
+    }
+  };
+
+  useEffect(() => {
+    loadCloudData();
+    const interval = setInterval(() => {
+      loadCloudData();
+    }, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
   // -----------------------------------------
   // 2. WORKFLOW HANDLERS
   // -----------------------------------------
@@ -232,7 +264,7 @@ export default function App() {
   };
 
   // Create or Edit a post
-  const handleCreatePublication = (pubData: {
+  const handleCreatePublication = async (pubData: {
     type: PublicationType;
     title: string;
     category: CategoryType;
@@ -243,30 +275,31 @@ export default function App() {
     zone: string;
     availability?: string;
   }, id?: string) => {
+    const formattedPrice = pubData.priceValue ? pubData.priceValue.replace(/\$/g, 'Bs.') : pubData.priceValue;
+
     if (id) {
       // Edit mode
-      setPublications(prev => prev.map(p => {
-        if (p.id === id) {
-          return {
-            ...p,
-            ...pubData,
-            priceValue: pubData.priceValue ? pubData.priceValue.replace(/\$/g, 'Bs.') : pubData.priceValue,
-          };
-        }
-        return p;
-      }));
+      const existing = publications.find(p => p.id === id);
+      if (existing) {
+        const updatedPub: Publication = {
+          ...existing,
+          ...pubData,
+          priceValue: formattedPrice
+        };
+        setPublications(prev => prev.map(p => p.id === id ? updatedPub : p));
+        await api.updatePublication(updatedPub);
+      }
     } else {
       // Create mode
-      const newPub: Publication = {
-        id: 'pub_' + Date.now(),
+      const newPub = await api.createPublication({
         userId: currentUser.id,
         authorName: currentUser.name,
         authorAvatar: currentUser.avatar,
         ...pubData,
-        priceValue: pubData.priceValue ? pubData.priceValue.replace(/\$/g, 'Bs.') : pubData.priceValue,
+        priceValue: formattedPrice,
         isActive: true,
-         createdAt: new Date().toISOString()
-      };
+        zone: pubData.zone
+      });
 
       setPublications(prev => [newPub, ...prev]);
     }
@@ -274,25 +307,23 @@ export default function App() {
   };
 
   // Toggle active / inactive status of a post
-  const handleTogglePublicationActive = (pubId: string) => {
-    setPublications(prev => prev.map(p => {
-      if (p.id === pubId) {
-        return { ...p, isActive: p.isActive === false ? true : false };
-      }
-      return p;
-    }));
+  const handleTogglePublicationActive = async (pubId: string) => {
+    const target = publications.find(p => p.id === pubId);
+    if (!target) return;
+    const updated = { ...target, isActive: target.isActive === false ? true : false };
+    setPublications(prev => prev.map(p => p.id === pubId ? updated : p));
+    await api.updatePublication(updated);
   };
 
   // Send an interest / help request on a post
-  const handleCreateRequest = (reqData: {
+  const handleCreateRequest = async (reqData: {
     comment: string;
     quantity?: number;
     proposedDateTime?: string;
   }) => {
     if (!activePublicationForRequest) return;
 
-    const newRequest: Request = {
-      id: 'req_' + Date.now(),
+    const newRequest = await api.createRequest({
       publicationId: activePublicationForRequest.id,
       publicationTitle: activePublicationForRequest.title,
       publicationType: activePublicationForRequest.type,
@@ -301,9 +332,8 @@ export default function App() {
       requesterName: currentUser.name,
       requesterAvatar: currentUser.avatar,
       ...reqData,
-      status: 'pendiente',
-      createdAt: new Date().toISOString()
-    };
+      status: 'pendiente'
+    });
 
     setRequests(prev => [newRequest, ...prev]);
 
@@ -320,6 +350,7 @@ export default function App() {
     };
 
     setNotifications(prev => [newNotif, ...prev]);
+    await api.createNotification(newNotif);
 
     // Focus immediately on the newly created request
     setSelectedRequestIdForChat(newRequest.id);
@@ -328,17 +359,15 @@ export default function App() {
   };
 
   // Send a chat message
-  const handleSendMessage = (requestId: string, text: string) => {
+  const handleSendMessage = async (requestId: string, text: string) => {
     const activeReq = requests.find(r => r.id === requestId);
     if (!activeReq) return;
 
-    const newMsg: Message = {
-      id: 'msg_' + Date.now(),
+    const newMsg = await api.sendMessage({
       requestId,
       senderId: currentUser.id,
-      text,
-      createdAt: new Date().toISOString()
-    };
+      text
+    });
 
     setMessages(prev => [...prev, newMsg]);
 
@@ -358,16 +387,19 @@ export default function App() {
     };
 
     setNotifications(prev => [newNotif, ...prev]);
+    await api.createNotification(newNotif);
   };
 
   // Change request status (Aceptada, Rechazada, Completada)
-  const handleChangeRequestStatus = (requestId: string, newStatus: 'pendiente' | 'aceptada' | 'rechazada' | 'completada') => {
+  const handleChangeRequestStatus = async (requestId: string, newStatus: 'pendiente' | 'aceptada' | 'rechazada' | 'completada') => {
     setRequests(prev => prev.map(r => {
       if (r.id === requestId) {
         return { ...r, status: newStatus };
       }
       return r;
     }));
+
+    await api.updateRequestStatus(requestId, newStatus);
 
     const activeReq = requests.find(r => r.id === requestId);
     if (!activeReq) return;
@@ -401,6 +433,7 @@ export default function App() {
     };
 
     setNotifications(prev => [newNotif, ...prev]);
+    await api.createNotification(newNotif);
   };
 
   // Add a Thank You (Recomendación) to a neighbor
@@ -420,7 +453,7 @@ export default function App() {
   };
 
   // Edit / Save Profile information
-  const handleSaveProfile = (updatedUser: User) => {
+  const handleSaveProfile = async (updatedUser: User) => {
     // Update active user lists
     setUsers(prev => {
       const exists = prev.some(u => u.id === updatedUser.id);
@@ -433,6 +466,8 @@ export default function App() {
     
     // Set as active user
     setCurrentUser(updatedUser);
+
+    await api.updateUserProfile(updatedUser);
 
     // Retroactively update name/avatar in their publications
     setPublications(prev => prev.map(p => {
@@ -461,36 +496,37 @@ export default function App() {
   };
 
   // --- ADMIN PANEL HANDLERS ---
-  const handleAdminDeletePublication = (pubId: string) => {
+  const handleAdminDeletePublication = async (pubId: string) => {
     setPublications(prev => prev.filter(p => p.id !== pubId));
+    await api.deletePublication(pubId);
   };
 
-  const handleAdminSavePublication = (updatedPub: Publication) => {
+  const handleAdminSavePublication = async (updatedPub: Publication) => {
     setPublications(prev => prev.map(p => p.id === updatedPub.id ? updatedPub : p));
+    await api.updatePublication(updatedPub);
   };
 
-  const handleAdminCreatePublication = (pubData: Omit<Publication, 'id' | 'createdAt'>) => {
-    const newPub: Publication = {
-      ...pubData,
-      id: 'pub_admin_' + Date.now(),
-      createdAt: new Date().toISOString()
-    };
+  const handleAdminCreatePublication = async (pubData: Omit<Publication, 'id' | 'createdAt'>) => {
+    const newPub = await api.createPublication(pubData);
     setPublications(prev => [newPub, ...prev]);
   };
 
-  const handleAdminDeleteUser = (userId: string) => {
+  const handleAdminDeleteUser = async (userId: string) => {
     setUsers(prev => prev.filter(u => u.id !== userId));
     // Also remove their publications so the database stays clean
     setPublications(prev => prev.filter(p => p.userId !== userId));
+    await api.deleteUser(userId);
   };
 
-  const handleAdminSaveUser = (updatedUser: User) => {
+  const handleAdminSaveUser = async (updatedUser: User) => {
     setUsers(prev => prev.map(u => u.id === updatedUser.id ? updatedUser : u));
     
     // If the active simulated user was updated, keep currentUser in sync
     if (currentUser.id === updatedUser.id) {
       setCurrentUser(updatedUser);
     }
+
+    await api.updateUserProfile(updatedUser);
 
     // Retroactively update name/avatar in publications
     setPublications(prev => prev.map(p => {
@@ -518,28 +554,27 @@ export default function App() {
     }));
   };
 
-  const handleAdminCreateUser = (userData: Omit<User, 'id'>) => {
+  const handleAdminCreateUser = async (userData: Omit<User, 'id'>) => {
     const newUser: User = {
       ...userData,
       id: 'usr_admin_' + Date.now()
     };
     setUsers(prev => [...prev, newUser]);
+    await api.updateUserProfile(newUser);
   };
 
-  const handleAdminDeleteAnnouncement = (annId: string) => {
+  const handleAdminDeleteAnnouncement = async (annId: string) => {
     setAnnouncements(prev => prev.filter(ann => ann.id !== annId));
+    await api.deleteAnnouncement(annId);
   };
 
-  const handleAdminSaveAnnouncement = (ann: Announcement) => {
+  const handleAdminSaveAnnouncement = async (ann: Announcement) => {
     setAnnouncements(prev => prev.map(p => p.id === ann.id ? ann : p));
+    await api.updateAnnouncement(ann);
   };
 
-  const handleAdminCreateAnnouncement = (annData: Omit<Announcement, 'id' | 'date'>) => {
-    const newAnn: Announcement = {
-      id: 'ann_' + Date.now(),
-      date: new Date().toISOString(),
-      ...annData
-    };
+  const handleAdminCreateAnnouncement = async (annData: Omit<Announcement, 'id' | 'date'>) => {
+    const newAnn = await api.createAnnouncement(annData);
     setAnnouncements(prev => [newAnn, ...prev]);
   };
 
