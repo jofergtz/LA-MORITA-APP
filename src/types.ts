@@ -95,3 +95,15 @@ export interface Announcement {
   important?: boolean;
 }
 
+export interface GuestSessionLog {
+  id: string;
+  sessionId: string;
+  firstSeen: string;
+  lastSeen: string;
+  hasInteracted: boolean; // false = solo entran a ver sin interactuar, true = interactuaron
+  actionCount: number;
+  lastActionDescription?: string;
+  actionsHistory?: string[];
+  deviceType?: string;
+}
+

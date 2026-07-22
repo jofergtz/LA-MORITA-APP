@@ -1,5 +1,5 @@
 import { supabase, isSupabaseConfigured } from '../lib/supabaseClient';
-import { User, Publication, Request, Message, Notification, ThankYou, Announcement } from '../types';
+import { User, Publication, Request, Message, Notification, ThankYou, Announcement, GuestSessionLog } from '../types';
 import { mockUsers, mockPublications, mockRequests, mockMessages, mockNotifications, mockThankYous, mockAnnouncements } from '../mockData';
 import { safeStorage } from '../lib/storage';
 
@@ -16,6 +16,7 @@ const STORAGE_KEYS = {
   DELETED_USERS: 'morita_deleted_users',
   DELETED_PUBS: 'morita_deleted_pubs',
   DELETED_ANNOUNCEMENTS: 'morita_deleted_announcements',
+  GUEST_ANALYTICS: 'morita_guest_analytics',
 };
 
 /**
@@ -661,5 +662,100 @@ export const api = {
     const updated = current.filter(a => a.id !== id);
     setLocalData(STORAGE_KEYS.ANNOUNCEMENTS, updated);
     return true;
+  },
+
+  // 8. GUEST ANALYTICS & METRICS
+  recordGuestActivity(actionDescription?: string): GuestSessionLog[] {
+    let currentSessionId = sessionStorage.getItem('morita_guest_session_id');
+    if (!currentSessionId) {
+      currentSessionId = 'g_sess_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
+      sessionStorage.setItem('morita_guest_session_id', currentSessionId);
+    }
+
+    const logs = getLocalData<GuestSessionLog[]>(STORAGE_KEYS.GUEST_ANALYTICS, []);
+    const nowIso = new Date().toISOString();
+    const existingIndex = logs.findIndex(l => l.sessionId === currentSessionId);
+
+    const isMobile = typeof window !== 'undefined' && /Mobi|Android/i.test(navigator.userAgent);
+    const deviceType = isMobile ? 'Móvil' : 'Escritorio';
+
+    if (existingIndex >= 0) {
+      const existing = logs[existingIndex];
+      const updatedHistory = actionDescription
+        ? [actionDescription, ...(existing.actionsHistory || [])].slice(0, 15)
+        : existing.actionsHistory || [];
+
+      logs[existingIndex] = {
+        ...existing,
+        lastSeen: nowIso,
+        hasInteracted: existing.hasInteracted || !!actionDescription,
+        actionCount: actionDescription ? (existing.actionCount || 0) + 1 : (existing.actionCount || 0),
+        lastActionDescription: actionDescription || existing.lastActionDescription || 'Ingresó a navegar (solo lectura)',
+        actionsHistory: updatedHistory,
+        deviceType: existing.deviceType || deviceType
+      };
+    } else {
+      const newLog: GuestSessionLog = {
+        id: 'g_log_' + Date.now() + '_' + Math.random().toString(36).substring(2, 5),
+        sessionId: currentSessionId,
+        firstSeen: nowIso,
+        lastSeen: nowIso,
+        hasInteracted: !!actionDescription,
+        actionCount: actionDescription ? 1 : 0,
+        lastActionDescription: actionDescription || 'Ingresó a navegar (solo lectura)',
+        actionsHistory: actionDescription ? [actionDescription] : ['Ingresó a la app'],
+        deviceType
+      };
+      logs.unshift(newLog);
+    }
+
+    setLocalData(STORAGE_KEYS.GUEST_ANALYTICS, logs);
+
+    // Optional Supabase cloud analytics tracking
+    if (isSupabaseConfigured() && supabase) {
+      const activeLog = logs.find(l => l.sessionId === currentSessionId);
+      if (activeLog) {
+        Promise.resolve(
+          supabase.from('guest_analytics').upsert({
+            id: activeLog.id,
+            session_id: activeLog.sessionId,
+            first_seen: activeLog.firstSeen,
+            last_seen: activeLog.lastSeen,
+            has_interacted: activeLog.hasInteracted,
+            action_count: activeLog.actionCount,
+            last_action_description: activeLog.lastActionDescription,
+            device_type: activeLog.deviceType
+          })
+        ).then(() => {}).catch(() => {});
+      }
+    }
+
+    return logs;
+  },
+
+  getGuestAnalytics(): {
+    logs: GuestSessionLog[];
+    totalSessions: number;
+    passiveGuestsCount: number;
+    activeGuestsCount: number;
+    interactionRate: number;
+  } {
+    const logs = getLocalData<GuestSessionLog[]>(STORAGE_KEYS.GUEST_ANALYTICS, []);
+    const totalSessions = logs.length;
+    const activeGuestsCount = logs.filter(l => l.hasInteracted).length;
+    const passiveGuestsCount = totalSessions - activeGuestsCount;
+    const interactionRate = totalSessions > 0 ? Math.round((activeGuestsCount / totalSessions) * 100) : 0;
+
+    return {
+      logs,
+      totalSessions,
+      passiveGuestsCount,
+      activeGuestsCount,
+      interactionRate
+    };
+  },
+
+  clearGuestAnalytics(): void {
+    setLocalData(STORAGE_KEYS.GUEST_ANALYTICS, []);
   }
 };

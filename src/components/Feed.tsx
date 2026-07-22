@@ -46,6 +46,7 @@ interface FeedProps {
   isFavoritesTab?: boolean;
   requests?: Request[];
   isAdmin?: boolean;
+  onGuestAction?: (actionDescription: string) => void;
 }
 
 export default function Feed({
@@ -63,7 +64,8 @@ export default function Feed({
   onToggleFavorite,
   isFavoritesTab = false,
   requests = [],
-  isAdmin = false
+  isAdmin = false,
+  onGuestAction
 }: FeedProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchFocused, setIsSearchFocused] = useState(false);

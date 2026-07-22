@@ -186,6 +186,19 @@ export default function App() {
     safeStorage.setItem('morita_juntaLoggedIn', isJuntaLoggedIn);
   }, [isJuntaLoggedIn]);
 
+  // Record Guest visit whenever current user is guest
+  useEffect(() => {
+    if (currentUser && currentUser.id === 'guest') {
+      api.recordGuestActivity();
+    }
+  }, [currentUser]);
+
+  const handleGuestAction = (actionDescription: string) => {
+    if (currentUser?.id === 'guest') {
+      api.recordGuestActivity(actionDescription);
+    }
+  };
+
   // Load data from Supabase Cloud on mount & poll every 5 seconds for cross-device sync
   const loadCloudData = async () => {
     try {
@@ -235,6 +248,7 @@ export default function App() {
       setCurrentUser(guestUser);
       setSelectedRequestIdForChat(null);
       setIsAdminLoggedIn(false);
+      api.recordGuestActivity('Cambió a modo Invitado');
       if (activeTab === 'admin') {
         setActiveTab('feed');
       }
@@ -258,6 +272,10 @@ export default function App() {
 
   // Toggle Publication Favorite
   const handleToggleFavorite = (pubId: string) => {
+    if (currentUser?.id === 'guest') {
+      const pub = publications.find(p => p.id === pubId);
+      api.recordGuestActivity(`Hizo clic en Me Gusta para ${pub ? `"${pub.title}"` : 'publicación'}`);
+    }
     setFavorites(prev => {
       if (prev.includes(pubId)) {
         return prev.filter(id => id !== pubId);
@@ -683,6 +701,7 @@ export default function App() {
             onToggleFavorite={handleToggleFavorite}
             requests={requests}
             isAdmin={isAdminLoggedIn}
+            onGuestAction={handleGuestAction}
           />
         ) : activeTab === 'favorites' ? (
           <Feed
@@ -704,6 +723,7 @@ export default function App() {
             isFavoritesTab={true}
             requests={requests}
             isAdmin={isAdminLoggedIn}
+            onGuestAction={handleGuestAction}
           />
         ) : activeTab === 'admin' ? (
           !isAdminLoggedIn ? (

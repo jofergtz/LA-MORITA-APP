@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { User, Publication, PublicationType, CategoryType, Announcement } from '../types';
+import { api } from '../services/api';
 import { 
   ShieldAlert, 
   Trash2, 
@@ -24,7 +25,15 @@ import {
   Eye,
   EyeOff,
   Megaphone,
-  Pin
+  Pin,
+  BarChart3,
+  MousePointerClick,
+  Activity,
+  TrendingUp,
+  RefreshCw,
+  Laptop,
+  UserCheck,
+  HelpCircle
 } from 'lucide-react';
 
 interface AdminPanelProps {
@@ -87,11 +96,27 @@ export default function AdminPanel({
   restrictToAnnouncements = false
 }: AdminPanelProps) {
   // Navigation tabs inside admin (forced to announcements if restrictToAnnouncements is true)
-  const [adminTab, setAdminTab] = useState<'pubs' | 'users' | 'announcements'>(
+  const [adminTab, setAdminTab] = useState<'pubs' | 'users' | 'announcements' | 'analytics'>(
     restrictToAnnouncements ? 'announcements' : 'pubs'
   );
   
   const activeAdminTab = restrictToAnnouncements ? 'announcements' : adminTab;
+
+  // Guest Analytics state
+  const [analyticsData, setAnalyticsData] = useState(() => api.getGuestAnalytics());
+
+  const handleRefreshAnalytics = () => {
+    setAnalyticsData(api.getGuestAnalytics());
+    showFeedback('Estadísticas de invitados actualizadas.', 'info');
+  };
+
+  const handleClearAnalytics = () => {
+    if (window.confirm('¿Estás seguro de reiniciar el registro de analíticas de invitados?')) {
+      api.clearGuestAnalytics();
+      setAnalyticsData(api.getGuestAnalytics());
+      showFeedback('Métricas de invitados reiniciadas.');
+    }
+  };
   
   // Search query states
   const [pubSearch, setPubSearch] = useState('');
@@ -982,6 +1007,20 @@ export default function AdminPanel({
             <Megaphone className="h-4 w-4 shrink-0" />
             <span>📣 Cartelera de la Junta ({announcements.length})</span>
           </button>
+          <button
+            onClick={() => {
+              setAnalyticsData(api.getGuestAnalytics());
+              setAdminTab('analytics');
+            }}
+            className={`px-4 sm:px-5 py-3 text-xs font-bold uppercase tracking-wider border-b-2 transition-all flex items-center gap-2 cursor-pointer shrink-0 ${
+              activeAdminTab === 'analytics'
+                ? 'border-emerald-600 text-emerald-600'
+                : 'border-transparent text-morita-charcoal/50 hover:text-morita-charcoal'
+            }`}
+          >
+            <BarChart3 className="h-4 w-4 shrink-0" />
+            <span>📊 Analítica e Invitados ({analyticsData.totalSessions})</span>
+          </button>
         </div>
       )}
 
@@ -1414,6 +1453,208 @@ export default function AdminPanel({
               ))}
             </div>
           )}
+        </div>
+      )}
+
+      {/* 7. ANALYTICS & GUEST METRICS TAB VIEW */}
+      {activeAdminTab === 'analytics' && (
+        <div className="space-y-6 animate-fade-in">
+          {/* Header Banner */}
+          <div className="p-5 bg-gradient-to-r from-emerald-900 to-teal-900 text-white rounded-2xl shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <div className="flex items-center space-x-2">
+                <span className="p-1.5 bg-emerald-700/50 rounded-lg text-emerald-300">
+                  <Activity className="h-5 w-5" />
+                </span>
+                <h3 className="font-display font-bold text-base text-white">
+                  Métricas y Comportamiento de Invitados
+                </h3>
+              </div>
+              <p className="text-xs text-emerald-100/80 mt-1 max-w-2xl">
+                Monitoreo automático en tiempo real de los vecinos y visitantes que ingresan a la app como <strong>invitados sin crear cuenta</strong>, registrando si solo miran o si interactúan (búsquedas, WhatsApp, me gusta, etc.).
+              </p>
+            </div>
+
+            <div className="flex items-center space-x-2 shrink-0">
+              <button
+                onClick={handleRefreshAnalytics}
+                className="px-3.5 py-2 text-xs font-bold rounded-xl bg-white/10 hover:bg-white/20 text-white border border-white/20 transition-all cursor-pointer flex items-center space-x-1.5"
+              >
+                <RefreshCw className="h-3.5 w-3.5" />
+                <span>Actualizar</span>
+              </button>
+              <button
+                onClick={handleClearAnalytics}
+                className="px-3 py-2 text-xs font-bold rounded-xl bg-red-500/20 hover:bg-red-500/30 text-red-200 border border-red-400/30 transition-all cursor-pointer flex items-center space-x-1"
+                title="Reiniciar métricas"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                <span>Limpiar</span>
+              </button>
+            </div>
+          </div>
+
+          {/* 4 Metric KPI Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            
+            {/* Total Guest Sessions */}
+            <div className="p-4 bg-white border border-morita-sand/70 rounded-2xl shadow-3xs flex flex-col justify-between">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[10px] font-extrabold uppercase text-morita-charcoal/50 tracking-wider">Total Visitas Invitados</span>
+                <span className="p-2 bg-blue-50 text-blue-600 rounded-xl">
+                  <Users className="h-4 w-4" />
+                </span>
+              </div>
+              <div>
+                <span className="font-display text-2xl font-black text-morita-charcoal">
+                  {analyticsData.totalSessions}
+                </span>
+                <span className="block text-[10px] text-morita-charcoal/50 mt-0.5">
+                  Sesiones de navegación sin cuenta
+                </span>
+              </div>
+            </div>
+
+            {/* Passive Guests (Lurkers) */}
+            <div className="p-4 bg-white border border-amber-200/80 rounded-2xl shadow-3xs flex flex-col justify-between bg-amber-50/20">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[10px] font-extrabold uppercase text-amber-800/70 tracking-wider">Solo Vieron (Pasivos)</span>
+                <span className="p-2 bg-amber-100 text-amber-700 rounded-xl">
+                  <Eye className="h-4 w-4" />
+                </span>
+              </div>
+              <div>
+                <span className="font-display text-2xl font-black text-amber-900">
+                  {analyticsData.passiveGuestsCount}
+                </span>
+                <span className="block text-[10px] text-amber-800/60 mt-0.5">
+                  {analyticsData.totalSessions > 0 ? Math.round((analyticsData.passiveGuestsCount / analyticsData.totalSessions) * 100) : 0}% entraron a mirar sin hacer clics
+                </span>
+              </div>
+            </div>
+
+            {/* Active Guests (Interacted) */}
+            <div className="p-4 bg-white border border-emerald-200/80 rounded-2xl shadow-3xs flex flex-col justify-between bg-emerald-50/20">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[10px] font-extrabold uppercase text-emerald-800/70 tracking-wider">Interactuaron (Activos)</span>
+                <span className="p-2 bg-emerald-100 text-emerald-700 rounded-xl">
+                  <MousePointerClick className="h-4 w-4" />
+                </span>
+              </div>
+              <div>
+                <span className="font-display text-2xl font-black text-emerald-950">
+                  {analyticsData.activeGuestsCount}
+                </span>
+                <span className="block text-[10px] text-emerald-800/60 mt-0.5">
+                  {analyticsData.totalSessions > 0 ? Math.round((analyticsData.activeGuestsCount / analyticsData.totalSessions) * 100) : 0}% realizaron acciones en la app
+                </span>
+              </div>
+            </div>
+
+            {/* Conversion / Interaction Rate */}
+            <div className="p-4 bg-white border border-indigo-200/80 rounded-2xl shadow-3xs flex flex-col justify-between bg-indigo-50/20">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[10px] font-extrabold uppercase text-indigo-800/70 tracking-wider">Tasa de Interacción</span>
+                <span className="p-2 bg-indigo-100 text-indigo-700 rounded-xl">
+                  <TrendingUp className="h-4 w-4" />
+                </span>
+              </div>
+              <div>
+                <span className="font-display text-2xl font-black text-indigo-950">
+                  {analyticsData.interactionRate}%
+                </span>
+                <span className="block text-[10px] text-indigo-800/60 mt-0.5">
+                  Ratio de participación de invitados
+                </span>
+              </div>
+            </div>
+
+          </div>
+
+          {/* Guest Sessions Log Table */}
+          <div className="bg-white border border-morita-sand/70 rounded-2xl shadow-3xs overflow-hidden">
+            <div className="px-5 py-4 border-b border-morita-sand/60 bg-morita-beige/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+              <div>
+                <h4 className="font-display font-bold text-sm text-morita-charcoal flex items-center space-x-2">
+                  <span>📋 Registro Reciente de Actividad de Invitados</span>
+                </h4>
+                <p className="text-[11px] text-morita-charcoal/60 mt-0.5">
+                  Detalle de las acciones realizadas por cada invitado no registrado que ingresó a La Morita.
+                </p>
+              </div>
+              <span className="text-[10px] font-bold px-2.5 py-1 bg-morita-sand/30 text-morita-charcoal/70 rounded-lg">
+                {analyticsData.logs.length} Sesiones Registradas
+              </span>
+            </div>
+
+            {analyticsData.logs.length === 0 ? (
+              <div className="p-12 text-center text-morita-charcoal/50">
+                <Users className="h-8 w-8 mx-auto mb-2 text-morita-sand" />
+                <p className="text-xs font-bold">Aún no hay registros de navegación de invitados.</p>
+                <p className="text-[11px] mt-1 text-morita-charcoal/40">
+                  Cuando alguien ingrese como invitado a navegar o interactuar, sus métricas aparecerán automáticamente aquí.
+                </p>
+              </div>
+            ) : (
+              <div className="divide-y divide-morita-sand/40">
+                {analyticsData.logs.map((log) => (
+                  <div key={log.id} className="p-4 hover:bg-morita-beige/10 transition-colors">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                      
+                      <div className="space-y-1">
+                        <div className="flex items-center space-x-2">
+                          {log.hasInteracted ? (
+                            <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-full text-[10px] font-black uppercase flex items-center space-x-1">
+                              <MousePointerClick className="h-3 w-3" />
+                              <span>Interactuó ({log.actionCount} acción{log.actionCount > 1 ? 'es' : ''})</span>
+                            </span>
+                          ) : (
+                            <span className="px-2 py-0.5 bg-amber-100 text-amber-800 border border-amber-300 rounded-full text-[10px] font-bold uppercase flex items-center space-x-1">
+                              <Eye className="h-3 w-3" />
+                              <span>Solo Vió (Pasivo)</span>
+                            </span>
+                          )}
+
+                          <span className="text-[11px] font-mono text-morita-charcoal/40">
+                            ID: {log.sessionId.slice(-8)}
+                          </span>
+
+                          <span className="text-[10px] px-1.5 py-0.5 bg-gray-100 text-gray-600 rounded font-semibold flex items-center space-x-0.5">
+                            {log.deviceType === 'Móvil' ? <Smartphone className="h-3 w-3" /> : <Laptop className="h-3 w-3" />}
+                            <span>{log.deviceType || 'Web'}</span>
+                          </span>
+                        </div>
+
+                        <div className="text-xs font-medium text-morita-charcoal/90 pt-1">
+                          <strong>Última Acción:</strong> {log.lastActionDescription || 'Navegación general'}
+                        </div>
+
+                        {log.actionsHistory && log.actionsHistory.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mt-1.5">
+                            {log.actionsHistory.map((act, idx) => (
+                              <span key={idx} className="text-[9px] bg-morita-sand/20 text-morita-charcoal/70 border border-morita-sand/40 px-2 py-0.5 rounded-md font-medium">
+                                • {act}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="text-right shrink-0 text-[10px] text-morita-charcoal/50 space-y-0.5">
+                        <div>
+                          <strong>Ingreso:</strong> {new Date(log.firstSeen).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                        </div>
+                        <div>
+                          <strong>Última Visto:</strong> {new Date(log.lastSeen).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                        </div>
+                      </div>
+
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>
