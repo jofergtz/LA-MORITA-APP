@@ -174,10 +174,18 @@ export const api = {
     return pub;
   },
 
-  async deletePublication(id: string): Promise<boolean> {
+  async deletePublication(id: string, password?: string): Promise<boolean> {
     if (isSupabaseConfigured() && supabase) {
-      const { error } = await supabase.from('publications').delete().eq('id', id);
-      if (error) console.warn('Supabase deletePublication notice:', error.message || error);
+      try {
+        const { data, error } = await supabase.functions.invoke('admin-action', {
+          body: { action: 'deletePublication', payload: { id }, password }
+        });
+        if (error || (data && !data.success)) {
+          console.warn('Supabase Edge Function deletePublication warning:', error || data?.error);
+        }
+      } catch (err) {
+        console.warn('Supabase Edge Function deletePublication catch:', err);
+      }
     }
     const current = getLocalData<Publication[]>(STORAGE_KEYS.PUBLICATIONS, mockPublications);
     const updated = current.filter(p => p.id !== id);
@@ -185,9 +193,18 @@ export const api = {
     return true;
   },
 
-  async deleteUser(id: string): Promise<boolean> {
+  async deleteUser(id: string, password?: string): Promise<boolean> {
     if (isSupabaseConfigured() && supabase) {
-      await supabase.from('profiles').delete().eq('id', id);
+      try {
+        const { data, error } = await supabase.functions.invoke('admin-action', {
+          body: { action: 'deleteUser', payload: { id }, password }
+        });
+        if (error || (data && !data.success)) {
+          console.warn('Supabase Edge Function deleteUser warning:', error || data?.error);
+        }
+      } catch (err) {
+        console.warn('Supabase Edge Function deleteUser catch:', err);
+      }
     }
     const current = getLocalData<User[]>(STORAGE_KEYS.USERS, mockUsers);
     const updated = current.filter(u => u.id !== id);
@@ -356,7 +373,7 @@ export const api = {
     return getLocalData(STORAGE_KEYS.ANNOUNCEMENTS, mockAnnouncements);
   },
 
-  async createAnnouncement(ann: Omit<Announcement, 'id' | 'date'>): Promise<Announcement> {
+  async createAnnouncement(ann: Omit<Announcement, 'id' | 'date'>, password?: string): Promise<Announcement> {
     const newAnn: Announcement = {
       ...ann,
       id: `ann_${Date.now()}`,
@@ -364,13 +381,26 @@ export const api = {
     };
 
     if (isSupabaseConfigured() && supabase) {
-      await supabase.from('announcements').insert({
-        id: newAnn.id,
-        title: newAnn.title,
-        content: newAnn.content,
-        date: newAnn.date,
-        important: newAnn.important ?? false
-      });
+      try {
+        const { data, error } = await supabase.functions.invoke('admin-action', {
+          body: {
+            action: 'createAnnouncement',
+            payload: {
+              id: newAnn.id,
+              title: newAnn.title,
+              content: newAnn.content,
+              date: newAnn.date,
+              important: newAnn.important ?? false
+            },
+            password
+          }
+        });
+        if (error || (data && !data.success)) {
+          console.warn('Supabase Edge Function createAnnouncement warning:', error || data?.error);
+        }
+      } catch (err) {
+        console.warn('Supabase Edge Function createAnnouncement catch:', err);
+      }
     }
 
     const current = getLocalData<Announcement[]>(STORAGE_KEYS.ANNOUNCEMENTS, mockAnnouncements);
@@ -379,15 +409,28 @@ export const api = {
     return newAnn;
   },
 
-  async updateAnnouncement(ann: Announcement): Promise<Announcement> {
+  async updateAnnouncement(ann: Announcement, password?: string): Promise<Announcement> {
     if (isSupabaseConfigured() && supabase) {
-      await supabase.from('announcements').upsert({
-        id: ann.id,
-        title: ann.title,
-        content: ann.content,
-        date: ann.date,
-        important: ann.important ?? false
-      });
+      try {
+        const { data, error } = await supabase.functions.invoke('admin-action', {
+          body: {
+            action: 'updateAnnouncement',
+            payload: {
+              id: ann.id,
+              title: ann.title,
+              content: ann.content,
+              date: ann.date,
+              important: ann.important ?? false
+            },
+            password
+          }
+        });
+        if (error || (data && !data.success)) {
+          console.warn('Supabase Edge Function updateAnnouncement warning:', error || data?.error);
+        }
+      } catch (err) {
+        console.warn('Supabase Edge Function updateAnnouncement catch:', err);
+      }
     }
     const current = getLocalData<Announcement[]>(STORAGE_KEYS.ANNOUNCEMENTS, mockAnnouncements);
     const updated = current.map(a => a.id === ann.id ? ann : a);
@@ -395,9 +438,18 @@ export const api = {
     return ann;
   },
 
-  async deleteAnnouncement(id: string): Promise<boolean> {
+  async deleteAnnouncement(id: string, password?: string): Promise<boolean> {
     if (isSupabaseConfigured() && supabase) {
-      await supabase.from('announcements').delete().eq('id', id);
+      try {
+        const { data, error } = await supabase.functions.invoke('admin-action', {
+          body: { action: 'deleteAnnouncement', payload: { id }, password }
+        });
+        if (error || (data && !data.success)) {
+          console.warn('Supabase Edge Function deleteAnnouncement warning:', error || data?.error);
+        }
+      } catch (err) {
+        console.warn('Supabase Edge Function deleteAnnouncement catch:', err);
+      }
     }
     const current = getLocalData<Announcement[]>(STORAGE_KEYS.ANNOUNCEMENTS, mockAnnouncements);
     const updated = current.filter(a => a.id !== id);

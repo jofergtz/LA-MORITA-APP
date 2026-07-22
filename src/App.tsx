@@ -131,9 +131,15 @@ export default function App() {
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState<boolean>(() => {
     return safeStorage.getItem<boolean>('morita_adminLoggedIn', false);
   });
+  const [adminPassword, setAdminPassword] = useState<string>(() => {
+    return safeStorage.getItem<string>('morita_adminPassword', '');
+  });
   const [isJuntaModalOpen, setIsJuntaModalOpen] = useState(false);
   const [isJuntaLoggedIn, setIsJuntaLoggedIn] = useState<boolean>(() => {
     return safeStorage.getItem<boolean>('morita_juntaLoggedIn', false);
+  });
+  const [juntaPassword, setJuntaPassword] = useState<string>(() => {
+    return safeStorage.getItem<string>('morita_juntaPassword', '');
   });
 
   // Synchronize localStorage safely on states changes
@@ -493,7 +499,7 @@ export default function App() {
   // --- ADMIN PANEL HANDLERS ---
   const handleAdminDeletePublication = async (pubId: string) => {
     setPublications(prev => prev.filter(p => p.id !== pubId));
-    await api.deletePublication(pubId);
+    await api.deletePublication(pubId, adminPassword || ADMIN_PASSWORD);
   };
 
   const handleAdminSavePublication = async (updatedPub: Publication) => {
@@ -510,7 +516,7 @@ export default function App() {
     setUsers(prev => prev.filter(u => u.id !== userId));
     // Also remove their publications so the database stays clean
     setPublications(prev => prev.filter(p => p.userId !== userId));
-    await api.deleteUser(userId);
+    await api.deleteUser(userId, adminPassword || ADMIN_PASSWORD);
   };
 
   const handleAdminSaveUser = async (updatedUser: User) => {
@@ -560,16 +566,16 @@ export default function App() {
 
   const handleAdminDeleteAnnouncement = async (annId: string) => {
     setAnnouncements(prev => prev.filter(ann => ann.id !== annId));
-    await api.deleteAnnouncement(annId);
+    await api.deleteAnnouncement(annId, adminPassword || juntaPassword || ADMIN_PASSWORD);
   };
 
   const handleAdminSaveAnnouncement = async (ann: Announcement) => {
     setAnnouncements(prev => prev.map(p => p.id === ann.id ? ann : p));
-    await api.updateAnnouncement(ann);
+    await api.updateAnnouncement(ann, adminPassword || juntaPassword || ADMIN_PASSWORD);
   };
 
   const handleAdminCreateAnnouncement = async (annData: Omit<Announcement, 'id' | 'date'>) => {
-    const newAnn = await api.createAnnouncement(annData);
+    const newAnn = await api.createAnnouncement(annData, adminPassword || juntaPassword || ADMIN_PASSWORD);
     setAnnouncements(prev => [newAnn, ...prev]);
   };
 
@@ -701,6 +707,8 @@ export default function App() {
                 const isValidUser = username.trim().toLowerCase() === 'admin';
                 const isValidPass = passcode.trim() === ADMIN_PASSWORD;
                 if (isValidUser && isValidPass) {
+                  setAdminPassword(passcode.trim());
+                  safeStorage.setItem('morita_adminPassword', passcode.trim());
                   setIsAdminLoggedIn(true);
                   const adminUser = users.find(u => u.isAdmin) || users[0];
                   if (adminUser) setCurrentUser(adminUser);
@@ -743,6 +751,8 @@ export default function App() {
               icon={<Megaphone className="h-9 w-9 text-amber-700 animate-pulse" />}
               onVerify={(username, passcode) => {
                 if (passcode.trim() === JUNTA_PASSWORD) {
+                  setJuntaPassword(passcode.trim());
+                  safeStorage.setItem('morita_juntaPassword', passcode.trim());
                   setIsJuntaLoggedIn(true);
                   return true;
                 }
@@ -1016,6 +1026,8 @@ export default function App() {
             const isValidUser = username.trim().toLowerCase() === 'admin';
             const isValidPass = passcode.trim() === ADMIN_PASSWORD;
             if (isValidUser && isValidPass) {
+              setAdminPassword(passcode.trim());
+              safeStorage.setItem('morita_adminPassword', passcode.trim());
               setIsAdminLoggedIn(true);
               const adminUser = users.find(u => u.isAdmin) || users[0];
               if (adminUser) setCurrentUser(adminUser);
@@ -1039,6 +1051,8 @@ export default function App() {
           icon={<Megaphone className="h-9 w-9 text-amber-700 animate-pulse" />}
           onVerify={(username, passcode) => {
             if (passcode.trim() === JUNTA_PASSWORD) {
+              setJuntaPassword(passcode.trim());
+              safeStorage.setItem('morita_juntaPassword', passcode.trim());
               setIsJuntaLoggedIn(true);
               setActiveTab('junta');
               setIsJuntaModalOpen(false);

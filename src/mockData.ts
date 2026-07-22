@@ -64,13 +64,13 @@ export const mockUsers: User[] = [
   },
   {
     id: 'currentUser', // Default active user so they can interact right away
-    name: 'Juan de Dios Vaca (Tú)',
-    email: 'juan@lamorita.com',
-    phone: '760-33445',
+    name: 'Jose Fernando Gutierrez Frontanilla',
+    email: 'jofe.gutierrez@gmail.com',
+    phone: '69090357',
     avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80',
-    zone: 'Equipetrol, Calle 4 #215',
-    bio: 'Vecino del Barrio La Morita comprometido con la vecindad. Dispuesto a colaborar en informática y soporte técnico rápido.',
-    skills: ['Computación', 'Soporte Técnico', 'Arreglos Rápidos'],
+    zone: 'Calle Roberto Urgel #3230',
+    bio: 'Nacido y criado en el barrio.',
+    skills: ['Comunicador Audiovisual', 'Fotografía', 'Manejo de Redes Sociales', 'Creación de Contenido', 'Streaming', 'Comunicación 360'],
     isAdmin: true
   }
 ];
