@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { User, PublicationType, CategoryType, Publication } from '../types';
-import { X, Image, MapPin, Clock, Sparkles, HelpCircle, Check, Map, Search, ExternalLink, Camera, Upload, Link, RefreshCw, ShieldAlert } from 'lucide-react';
+import { X, Image, MapPin, Clock, Sparkles, HelpCircle, Check, Map, Search, ExternalLink, Camera, Upload, Link, RefreshCw, ShieldAlert, Trash2 } from 'lucide-react';
 import { compressImageDataUrl, compressImageFile } from '../utils/imageCompressor';
 
 interface PublishModalProps {
@@ -8,6 +8,7 @@ interface PublishModalProps {
   onClose: () => void;
   currentUser: User;
   publicationToEdit?: Publication | null;
+  onDeletePublication?: (id: string) => void;
   onSubmit: (data: {
     type: PublicationType;
     title: string;
@@ -54,7 +55,7 @@ const photoPresets = [
   }
 ];
 
-export default function PublishModal({ isOpen, onClose, currentUser, publicationToEdit, onSubmit }: PublishModalProps) {
+export default function PublishModal({ isOpen, onClose, currentUser, publicationToEdit, onDeletePublication, onSubmit }: PublishModalProps) {
   const [type, setType] = useState<PublicationType>('vendo');
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState<CategoryType>('Productos');
@@ -76,6 +77,7 @@ export default function PublishModal({ isOpen, onClose, currentUser, publication
   const [error, setError] = useState('');
   const [showMapAssistant, setShowMapAssistant] = useState(false);
   const [mapSearchText, setMapSearchText] = useState('');
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   // Photo Source management
   const [activePhotoSource, setActivePhotoSource] = useState<'upload' | 'camera' | 'link'>('upload');
@@ -87,6 +89,7 @@ export default function PublishModal({ isOpen, onClose, currentUser, publication
   // Handle Edit vs Create pre-population
   useEffect(() => {
     if (isOpen) {
+      setShowDeleteConfirm(false);
       if (publicationToEdit) {
         setType(publicationToEdit.type);
         setTitle(publicationToEdit.title);
@@ -1141,20 +1144,60 @@ export default function PublishModal({ isOpen, onClose, currentUser, publication
         </form>
 
         {/* Footer Actions */}
-        <div className="px-6 py-4 border-t border-morita-sand/60 flex items-center justify-end space-x-3 bg-morita-beige/20">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-2 text-xs font-semibold rounded-lg hover:bg-morita-sand/50 text-morita-charcoal/70 transition-colors cursor-pointer"
-          >
-            Cancelar
-          </button>
-          <button
-            onClick={handleFormSubmit}
-            className="bg-morita-mulberry hover:bg-morita-mulberry-dark text-white px-5 py-2.5 rounded-lg text-xs font-bold shadow-xs transition-colors cursor-pointer"
-          >
-            {publicationToEdit ? 'Guardar Cambios' : 'Publicar en el Barrio'}
-          </button>
+        <div className="px-6 py-4 border-t border-morita-sand/60 flex flex-col sm:flex-row items-center justify-between gap-3 bg-morita-beige/20">
+          <div>
+            {publicationToEdit && onDeletePublication && (
+              !showDeleteConfirm ? (
+                <button
+                  type="button"
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className="w-full sm:w-auto px-3.5 py-2 text-xs font-bold rounded-lg bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 transition-colors cursor-pointer flex items-center justify-center space-x-1.5 shadow-xs"
+                >
+                  <Trash2 className="h-3.5 w-3.5 text-red-600" />
+                  <span>Borrar publicación</span>
+                </button>
+              ) : (
+                <div className="flex items-center space-x-2 bg-red-100/80 border border-red-300 p-1.5 px-3 rounded-lg animate-fade-in">
+                  <span className="text-[11px] font-bold text-red-900">¿Borrar de Supabase?</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (publicationToEdit && onDeletePublication) {
+                        onDeletePublication(publicationToEdit.id);
+                        onClose();
+                      }
+                    }}
+                    className="px-2.5 py-1 text-[11px] font-extrabold bg-red-600 hover:bg-red-700 text-white rounded-md transition-colors cursor-pointer"
+                  >
+                    Sí, borrar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowDeleteConfirm(false)}
+                    className="px-2.5 py-1 text-[11px] font-semibold bg-white hover:bg-gray-100 text-gray-700 border border-gray-300 rounded-md transition-colors cursor-pointer"
+                  >
+                    No
+                  </button>
+                </div>
+              )
+            )}
+          </div>
+
+          <div className="flex items-center space-x-3 w-full sm:w-auto justify-end">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 text-xs font-semibold rounded-lg hover:bg-morita-sand/50 text-morita-charcoal/70 transition-colors cursor-pointer"
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={handleFormSubmit}
+              className="bg-morita-mulberry hover:bg-morita-mulberry-dark text-white px-5 py-2.5 rounded-lg text-xs font-bold shadow-xs transition-colors cursor-pointer"
+            >
+              {publicationToEdit ? 'Guardar Cambios' : 'Publicar en el Barrio'}
+            </button>
+          </div>
         </div>
       </div>
     </div>

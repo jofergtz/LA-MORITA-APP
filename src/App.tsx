@@ -677,6 +677,7 @@ export default function App() {
               setPublicationToEdit(pub);
               setIsPublishOpen(true);
             }}
+            onDeletePublication={handleAdminDeletePublication}
             onOpenPublish={() => setIsPublishOpen(true)}
             favorites={favorites}
             onToggleFavorite={handleToggleFavorite}
@@ -696,6 +697,7 @@ export default function App() {
               setPublicationToEdit(pub);
               setIsPublishOpen(true);
             }}
+            onDeletePublication={handleAdminDeletePublication}
             onOpenPublish={() => setIsPublishOpen(true)}
             favorites={favorites}
             onToggleFavorite={handleToggleFavorite}
@@ -867,6 +869,7 @@ export default function App() {
         }}
         currentUser={currentUser}
         publicationToEdit={publicationToEdit}
+        onDeletePublication={handleAdminDeletePublication}
         onSubmit={handleCreatePublication}
       />
 

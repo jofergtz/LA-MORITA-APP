@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Publication, PublicationType, CategoryType, User, Announcement, Request } from '../types';
-import { Search, SlidersHorizontal, MapPin, Coins, Calendar, Sparkles, AlertTriangle, ArrowUpDown, ChevronRight, Eye, EyeOff, Users, Edit, Megaphone, Pin, BookOpen, MessageSquare, Plus, Heart, BarChart3, Award, CheckCircle2, TrendingUp, Send, Share2 } from 'lucide-react';
+import { Search, SlidersHorizontal, MapPin, Coins, Calendar, Sparkles, AlertTriangle, ArrowUpDown, ChevronRight, Eye, EyeOff, Users, Edit, Megaphone, Pin, BookOpen, MessageSquare, Plus, Heart, BarChart3, Award, CheckCircle2, TrendingUp, Send, Share2, Trash2 } from 'lucide-react';
 
 // Helper function to dynamically generate automatic tags based on title/description text
 export function getAutoTags(title: string, description: string): string[] {
@@ -39,6 +39,7 @@ interface FeedProps {
   announcements: Announcement[];
   onToggleActive?: (publicationId: string) => void;
   onEditPublication?: (pub: Publication) => void;
+  onDeletePublication?: (publicationId: string) => void;
   onOpenPublish?: () => void;
   favorites?: string[];
   onToggleFavorite?: (pubId: string) => void;
@@ -56,6 +57,7 @@ export default function Feed({
   announcements,
   onToggleActive,
   onEditPublication,
+  onDeletePublication,
   onOpenPublish,
   favorites = [],
   onToggleFavorite,
@@ -1342,6 +1344,20 @@ export default function Feed({
                               <Edit className="h-3.5 w-3.5 text-morita-mulberry shrink-0" />
                               <span>Editar</span>
                             </button>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (window.confirm('¿Estás seguro de que querés borrar esta publicación definitivamente?')) {
+                                  onDeletePublication && onDeletePublication(p.id);
+                                }
+                              }}
+                              className="py-2 px-1.5 rounded-lg text-[10px] font-bold border border-red-200 bg-red-50 text-red-700 hover:bg-red-100 transition-all cursor-pointer flex items-center justify-center space-x-1 shadow-2xs"
+                              title="Borrar publicación"
+                            >
+                              <Trash2 className="h-3.5 w-3.5 text-red-600 shrink-0" />
+                              <span>Borrar</span>
+                            </button>
                           </div>
                           <p className="text-[9px] text-center text-morita-charcoal/40 leading-none font-medium">
                             {p.isActive !== false ? 'Tus vecinos pueden pedir ahora' : 'Publicación pausada temporalmente'}
@@ -1394,6 +1410,19 @@ export default function Feed({
                           >
                             {p.isActive !== false ? <Eye className="h-3 w-3 text-amber-700" /> : <EyeOff className="h-3 w-3 text-amber-700" />}
                             <span>{p.isActive !== false ? 'Pausar' : 'Activar'}</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (window.confirm('¿Estás seguro de borrar esta publicación definitivamente de Supabase?')) {
+                                onDeletePublication && onDeletePublication(p.id);
+                              }
+                            }}
+                            className="py-1 px-2 rounded-lg text-[10px] font-bold bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 flex items-center justify-center gap-1 cursor-pointer transition-colors"
+                            title="Borrar publicación definitivamente como Administrador"
+                          >
+                            <Trash2 className="h-3 w-3 text-red-600" />
+                            <span>Borrar (Admin)</span>
                           </button>
                         </div>
                       )}

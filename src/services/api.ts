@@ -222,42 +222,12 @@ export const api = {
         });
       }
     });
-    // ALWAYS override and add Supabase live cloud publications
-    supabasePubs.forEach(p => pubMap.set(p.id, p));
-
-    // Auto-sync any local publications that exist in localStorage but are missing in Supabase cloud
-    if (isSupabaseConfigured() && supabase) {
-      localPubs.forEach(async (lp) => {
-        if (!deletedPubIds.includes(lp.id) && !supabasePubs.some(sp => sp.id === lp.id)) {
-          try {
-            const author = liveUserMap.get(lp.userId);
-            let safeAvatar = author?.avatar || lp.authorAvatar || DEFAULT_NEUTRAL_AVATAR;
-            let safePhoto = lp.photo || '';
-
-            // Insert publication directly into Supabase without overwriting profile table
-            await supabase.from('publications').upsert({
-              id: lp.id,
-              user_id: lp.userId,
-              author_name: author?.name || lp.authorName,
-              author_avatar: safeAvatar,
-              type: lp.type,
-              title: lp.title,
-              category: lp.category,
-              description: lp.description,
-              price_type: lp.priceType,
-              price_value: lp.priceValue,
-              photo: safePhoto,
-              zone: lp.zone,
-              availability: lp.availability,
-              is_active: lp.isActive ?? true,
-              created_at: lp.createdAt
-            });
-          } catch (err) {
-            console.warn('Background publication auto-sync error:', err);
-          }
-        }
-      });
-    }
+    // ALWAYS override with Supabase live cloud publications (excluding deleted ones)
+    supabasePubs.forEach(p => {
+      if (!deletedPubIds.includes(p.id)) {
+        pubMap.set(p.id, p);
+      }
+    });
 
     return Array.from(pubMap.values())
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
@@ -339,14 +309,21 @@ export const api = {
 
     if (isSupabaseConfigured() && supabase) {
       try {
-        const { data, error } = await supabase.functions.invoke('admin-action', {
-          body: { action: 'deletePublication', payload: { id }, password }
-        });
-        if (error || (data && !data.success)) {
-          console.warn('Supabase Edge Function deletePublication warning:', error || data?.error);
+        // Perform direct Supabase table row deletion
+        const { error } = await supabase.from('publications').delete().eq('id', id);
+        if (error) {
+          console.warn('Direct Supabase deletePublication warning:', error.message || error);
         }
       } catch (err) {
-        console.warn('Supabase Edge Function deletePublication catch:', err);
+        console.warn('Direct Supabase deletePublication catch:', err);
+      }
+
+      try {
+        await supabase.functions.invoke('admin-action', {
+          body: { action: 'deletePublication', payload: { id }, password }
+        });
+      } catch (err) {
+        // Edge function optional fallback
       }
     }
     const current = getLocalData<Publication[]>(STORAGE_KEYS.PUBLICATIONS, mockPublications);
@@ -360,14 +337,19 @@ export const api = {
 
     if (isSupabaseConfigured() && supabase) {
       try {
-        const { data, error } = await supabase.functions.invoke('admin-action', {
+        // Direct deletion of user's publications and profile in Supabase
+        await supabase.from('publications').delete().eq('user_id', id);
+        await supabase.from('profiles').delete().eq('id', id);
+      } catch (err) {
+        console.warn('Direct Supabase deleteUser catch:', err);
+      }
+
+      try {
+        await supabase.functions.invoke('admin-action', {
           body: { action: 'deleteUser', payload: { id }, password }
         });
-        if (error || (data && !data.success)) {
-          console.warn('Supabase Edge Function deleteUser warning:', error || data?.error);
-        }
       } catch (err) {
-        console.warn('Supabase Edge Function deleteUser catch:', err);
+        // Edge function optional fallback
       }
     }
     const current = getLocalData<User[]>(STORAGE_KEYS.USERS, mockUsers);
