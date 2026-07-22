@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { User, PublicationType, CategoryType, Publication } from '../types';
 import { X, Image, MapPin, Clock, Sparkles, HelpCircle, Check, Map, Search, ExternalLink, Camera, Upload, Link, RefreshCw, ShieldAlert } from 'lucide-react';
+import { compressImageDataUrl, compressImageFile } from '../utils/imageCompressor';
 
 interface PublishModalProps {
   isOpen: boolean;
@@ -249,26 +250,27 @@ export default function PublishModal({ isOpen, onClose, currentUser, publication
     }
   };
 
-  const capturePhoto = () => {
+  const capturePhoto = async () => {
     if (!videoRef.current) return;
     const video = videoRef.current;
 
     const canvas = document.createElement('canvas');
-    canvas.width = video.videoWidth || 640;
-    canvas.height = video.videoHeight || 480;
+    canvas.width = Math.min(video.videoWidth || 600, 600);
+    canvas.height = Math.min(video.videoHeight || 600, 600);
     
     const ctx = canvas.getContext('2d');
     if (ctx) {
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-      const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
-      setPhoto(dataUrl);
+      const rawUrl = canvas.toDataURL('image/jpeg', 0.7);
+      const compressed = await compressImageDataUrl(rawUrl, 600, 600, 0.7);
+      setPhoto(compressed);
       setPhotoPresetIndex(null);
       setUseCustomPhoto(true);
       stopCamera();
     }
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -277,14 +279,12 @@ export default function PublishModal({ isOpen, onClose, currentUser, publication
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const base64Url = event.target?.result as string;
-      setPhoto(base64Url);
+    const compressed = await compressImageFile(file, 600, 600, 0.7);
+    if (compressed) {
+      setPhoto(compressed);
       setPhotoPresetIndex(null);
       setUseCustomPhoto(true);
-    };
-    reader.readAsDataURL(file);
+    }
   };
 
   if (!isOpen) return null;
@@ -329,7 +329,7 @@ export default function PublishModal({ isOpen, onClose, currentUser, publication
     setUseCustomPhoto(true);
   };
 
-  const handleFormSubmit = (e: React.FormEvent) => {
+  const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
@@ -354,6 +354,8 @@ export default function PublishModal({ isOpen, onClose, currentUser, publication
       return;
     }
 
+    const finalPhoto = photo ? await compressImageDataUrl(photo, 600, 600, 0.7) : undefined;
+
     onSubmit({
       type,
       title: title.trim(),
@@ -361,7 +363,7 @@ export default function PublishModal({ isOpen, onClose, currentUser, publication
       description: description.trim(),
       priceType,
       priceValue: priceType === 'monto' ? priceValue.trim() : undefined,
-      photo: photo || undefined,
+      photo: finalPhoto,
       zone: zone.trim(),
       availability: availability.trim() || undefined
     }, publicationToEdit?.id);

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { User } from '../types';
 import { X, User as UserIcon, Phone, MapPin, Mail, AlignLeft, Check, Camera, Sparkles, Map, Search, ExternalLink, Upload, Link, RefreshCw, Image } from 'lucide-react';
+import { compressImageDataUrl, compressImageFile } from '../utils/imageCompressor';
 
 interface RegistrationModalProps {
   isOpen: boolean;
@@ -198,22 +199,23 @@ export default function RegistrationModal({
     }
   };
 
-  const capturePhoto = () => {
+  const capturePhoto = async () => {
     if (!videoRef.current) return;
     const video = videoRef.current;
     const canvas = document.createElement('canvas');
-    canvas.width = video.videoWidth || 400;
-    canvas.height = video.videoHeight || 400;
+    canvas.width = Math.min(video.videoWidth || 300, 300);
+    canvas.height = Math.min(video.videoHeight || 300, 300);
     const ctx = canvas.getContext('2d');
     if (ctx) {
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-      const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
-      setAvatar(dataUrl);
+      const rawUrl = canvas.toDataURL('image/jpeg', 0.7);
+      const compressed = await compressImageDataUrl(rawUrl, 250, 250, 0.7);
+      setAvatar(compressed);
       stopCamera();
     }
   };
 
-  const handleAvatarFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -222,12 +224,10 @@ export default function RegistrationModal({
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const base64Url = event.target?.result as string;
-      setAvatar(base64Url);
-    };
-    reader.readAsDataURL(file);
+    const compressed = await compressImageFile(file, 250, 250, 0.7);
+    if (compressed) {
+      setAvatar(compressed);
+    }
   };
 
   // Hydrate or reset form on load
@@ -307,7 +307,7 @@ export default function RegistrationModal({
     setCustomSkill('');
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
@@ -327,6 +327,8 @@ export default function RegistrationModal({
     const target = userToEdit || currentUser;
     const savedId = mode === 'register' ? 'u_' + Date.now() : target.id;
 
+    const finalAvatar = await compressImageDataUrl(avatar, 250, 250, 0.7);
+
     onSave({
       id: savedId,
       name: name.trim(),
@@ -334,7 +336,7 @@ export default function RegistrationModal({
       phone: phone.trim(),
       zone: zone.trim(),
       bio: bio.trim() || undefined,
-      avatar: avatar,
+      avatar: finalAvatar,
       skills: skills,
       isAdmin: target?.isAdmin
     });

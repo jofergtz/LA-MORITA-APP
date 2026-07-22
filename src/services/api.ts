@@ -98,6 +98,13 @@ export const api = {
 
   async updateUserProfile(updatedUser: User): Promise<User> {
     if (isSupabaseConfigured() && supabase) {
+      // Ensure avatar is not a giant uncompressed camera string that breaks PostgREST
+      let safeAvatar = updatedUser.avatar;
+      if (safeAvatar && safeAvatar.startsWith('data:image/') && safeAvatar.length > 150000) {
+        console.warn('Avatar string exceeds safe size, truncating for Supabase sync');
+        safeAvatar = 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80';
+      }
+
       const { error } = await supabase
         .from('profiles')
         .upsert({
@@ -105,7 +112,7 @@ export const api = {
           name: updatedUser.name,
           email: updatedUser.email,
           phone: updatedUser.phone,
-          avatar: updatedUser.avatar,
+          avatar: safeAvatar,
           zone: updatedUser.zone,
           bio: updatedUser.bio,
           skills: updatedUser.skills,
@@ -187,18 +194,28 @@ export const api = {
     };
 
     if (isSupabaseConfigured() && supabase) {
+      let safeAuthorAvatar = newPub.authorAvatar;
+      if (safeAuthorAvatar && safeAuthorAvatar.startsWith('data:image/') && safeAuthorAvatar.length > 150000) {
+        safeAuthorAvatar = 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80';
+      }
+
+      let safePhoto = newPub.photo;
+      if (safePhoto && safePhoto.startsWith('data:image/') && safePhoto.length > 250000) {
+        safePhoto = '';
+      }
+
       const { error } = await supabase.from('publications').insert({
         id: newPub.id,
         user_id: newPub.userId,
         author_name: newPub.authorName,
-        author_avatar: newPub.authorAvatar,
+        author_avatar: safeAuthorAvatar,
         type: newPub.type,
         title: newPub.title,
         category: newPub.category,
         description: newPub.description,
         price_type: newPub.priceType,
         price_value: newPub.priceValue,
-        photo: newPub.photo,
+        photo: safePhoto,
         zone: newPub.zone,
         availability: newPub.availability,
         is_active: newPub.isActive,
@@ -215,18 +232,28 @@ export const api = {
 
   async updatePublication(pub: Publication): Promise<Publication> {
     if (isSupabaseConfigured() && supabase) {
+      let safeAuthorAvatar = pub.authorAvatar;
+      if (safeAuthorAvatar && safeAuthorAvatar.startsWith('data:image/') && safeAuthorAvatar.length > 150000) {
+        safeAuthorAvatar = 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80';
+      }
+
+      let safePhoto = pub.photo;
+      if (safePhoto && safePhoto.startsWith('data:image/') && safePhoto.length > 250000) {
+        safePhoto = '';
+      }
+
       const { error } = await supabase.from('publications').upsert({
         id: pub.id,
         user_id: pub.userId,
         author_name: pub.authorName,
-        author_avatar: pub.authorAvatar,
+        author_avatar: safeAuthorAvatar,
         type: pub.type,
         title: pub.title,
         category: pub.category,
         description: pub.description,
         price_type: pub.priceType,
         price_value: pub.priceValue,
-        photo: pub.photo,
+        photo: safePhoto,
         zone: pub.zone,
         availability: pub.availability,
         is_active: pub.isActive ?? true,
