@@ -52,17 +52,17 @@ export default function Header({
           {/* Logo & Slogan */}
           <div 
             id="logo-container" 
-            className="flex items-center space-x-2 cursor-pointer shrink-0 min-w-0"
+            className="flex items-center space-x-2.5 cursor-pointer shrink-0 min-w-0 group"
             onClick={() => onNavigate('feed')}
           >
-            <div className="bg-morita-mulberry text-white p-1.5 sm:p-2 rounded-full shadow-xs transition-transform hover:scale-105 shrink-0">
-              <Leaf className="h-4.5 w-4.5 sm:h-5 sm:w-5 fill-current text-white" />
+            <div className="bg-morita-mulberry text-white p-2 rounded-full shadow-xs ring-2 ring-morita-gold/40 transition-transform group-hover:scale-105 shrink-0 flex items-center justify-center">
+              <Leaf className="h-4.5 w-4.5 sm:h-5 sm:w-5 fill-morita-gold/30 text-white" />
             </div>
             <div className="flex flex-col min-w-0">
-              <span className="text-lg sm:text-xl font-display font-bold tracking-tight text-morita-charcoal truncate">
+              <span className="text-lg sm:text-xl font-display font-bold tracking-tight text-morita-mulberry truncate">
                 La Morita
               </span>
-              <span className="text-[9px] sm:text-[10px] font-medium tracking-wider text-morita-terracotta uppercase -mt-1 hidden sm:inline-block truncate">
+              <span className="text-[9px] sm:text-[10px] font-semibold tracking-widest text-morita-terracotta uppercase -mt-1 hidden sm:inline-block truncate">
                 Red Vecinal Colaborativa
               </span>
             </div>

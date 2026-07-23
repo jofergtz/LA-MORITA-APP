@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Publication, PublicationType, CategoryType, User, Announcement, Request } from '../types';
-import { Search, SlidersHorizontal, MapPin, Coins, Calendar, Sparkles, AlertTriangle, ArrowUpDown, ChevronRight, Eye, EyeOff, Users, Edit, Megaphone, Pin, BookOpen, MessageSquare, Plus, Heart, BarChart3, Award, CheckCircle2, TrendingUp, Send, Share2, Trash2 } from 'lucide-react';
+import { Search, SlidersHorizontal, MapPin, Coins, Calendar, Sparkles, AlertTriangle, ArrowUpDown, ChevronRight, Eye, EyeOff, Users, Edit, Megaphone, Pin, BookOpen, MessageSquare, Plus, Heart, BarChart3, Award, CheckCircle2, TrendingUp, Send, Share2, Trash2, Leaf } from 'lucide-react';
 
 // Helper function to dynamically generate automatic tags based on title/description text
 export function getAutoTags(title: string, description: string): string[] {
@@ -47,6 +47,20 @@ interface FeedProps {
   requests?: Request[];
   isAdmin?: boolean;
   onGuestAction?: (actionDescription: string) => void;
+}
+
+function SectionDivider() {
+  return (
+    <div className="flex items-center justify-center my-6 gap-3 opacity-90" aria-hidden="true">
+      <div className="h-[1px] w-12 sm:w-20 bg-gradient-to-r from-transparent via-morita-gold/50 to-morita-gold" />
+      <div className="flex items-center space-x-1.5 text-morita-mulberry">
+        <Leaf className="h-3.5 w-3.5 text-morita-leaf fill-morita-leaf/30" />
+        <span className="w-1.5 h-1.5 rounded-full bg-morita-gold inline-block" />
+        <Leaf className="h-3.5 w-3.5 text-morita-mulberry fill-morita-mulberry/30 -scale-x-100" />
+      </div>
+      <div className="h-[1px] w-12 sm:w-20 bg-gradient-to-l from-transparent via-morita-gold/50 to-morita-gold" />
+    </div>
+  );
 }
 
 export default function Feed({
@@ -334,14 +348,14 @@ export default function Feed({
         };
       case 'ofrezco':
         return {
-          bg: 'bg-vibrant-blue/10 text-vibrant-blue border-vibrant-blue/20',
-          badge: 'bg-vibrant-blue text-white',
+          bg: 'bg-morita-mulberry/10 text-morita-mulberry border-morita-mulberry/20',
+          badge: 'bg-morita-mulberry text-white',
           label: 'Ofrezco / Servicio'
         };
       case 'necesito':
         return {
-          bg: 'bg-vibrant-red/10 text-vibrant-red border-vibrant-red/20',
-          badge: 'bg-vibrant-red text-white',
+          bg: 'bg-morita-terracotta/10 text-morita-terracotta border-morita-terracotta/20',
+          badge: 'bg-morita-terracotta text-white',
           label: 'Necesito / Pedido'
         };
     }
@@ -371,46 +385,48 @@ export default function Feed({
     <div id="feed-screen" className="pb-16">
       
       {/* Friendly Neighborhood Banner / Favorites Banner */}
-      <div className="bg-morita-sand/50 rounded-2xl p-6 sm:p-8 mb-8 border border-morita-sand flex flex-col md:flex-row items-center justify-between gap-6">
-        <div className="max-w-xl text-center md:text-left">
+      <div className="bg-gradient-to-br from-morita-sand/60 via-morita-beige to-morita-sand/40 rounded-2xl p-6 sm:p-8 mb-6 border border-morita-gold/30 shadow-xs flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden">
+        <div className="max-w-xl text-center md:text-left z-10">
           {isFavoritesTab ? (
             <>
-              <div className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-morita-mulberry/15 text-morita-mulberry text-xs font-semibold mb-3">
+              <div className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-morita-mulberry/10 text-morita-mulberry text-xs font-semibold mb-3 border border-morita-mulberry/20">
                 <Heart className="h-3.5 w-3.5 fill-morita-mulberry text-morita-mulberry animate-pulse" />
                 <span>Tus publicaciones preferidas guardadas</span>
               </div>
-              <h1 className="text-2xl sm:text-3xl font-serif font-semibold text-morita-charcoal leading-tight">
+              <h1 className="text-2xl sm:text-3xl font-serif font-bold text-morita-mulberry leading-tight">
                 Mis Favoritos
               </h1>
-              <p className="text-xs sm:text-sm text-morita-charcoal/70 mt-2 leading-relaxed">
+              <p className="text-xs sm:text-sm text-morita-charcoal/80 mt-2 leading-relaxed">
                 Aquí podés ver y hacer seguimiento de los productos, servicios o pedidos que guardaste como favoritos en el barrio.
               </p>
             </>
           ) : (
             <>
-              <div className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-morita-terracotta/15 text-morita-terracotta text-xs font-semibold mb-3">
-                <Sparkles className="h-3.5 w-3.5 animate-bounce" />
+              <div className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-morita-terracotta/15 text-morita-terracotta text-xs font-semibold mb-3 border border-morita-terracotta/30">
+                <Sparkles className="h-3.5 w-3.5 text-morita-terracotta" />
                 <span>La confianza de ser del mismo barrio</span>
               </div>
-              <h1 className="text-2xl sm:text-3xl font-serif font-semibold text-morita-charcoal leading-tight">
+              <h1 className="text-2xl sm:text-3xl font-serif font-bold text-morita-mulberry leading-tight">
                 ¿Qué hay hoy por La Morita?
               </h1>
-              <p className="text-xs sm:text-sm text-morita-charcoal/70 mt-2 leading-relaxed">
+              <p className="text-xs sm:text-sm text-morita-charcoal/80 mt-2 leading-relaxed">
                 Comprá casero, contratá ayuda confiable y respondé a los pedidos de auxilio de tus vecinos. Sin intermediarios, cara a cara, a solo una cuadra de distancia.
               </p>
             </>
           )}
         </div>
-        <div className="hidden lg:flex items-center space-x-2 bg-white/80 p-4 rounded-xl border border-morita-sand shadow-xs text-xs max-w-xs">
-          <MapPin className="h-8 w-8 text-morita-mulberry shrink-0" />
+        <div className="hidden lg:flex items-center space-x-2 bg-white/90 backdrop-blur-xs p-4 rounded-xl border border-morita-gold/40 shadow-xs text-xs max-w-xs z-10">
+          <MapPin className="h-8 w-8 text-morita-terracotta shrink-0" />
           <div>
-            <span className="font-bold block text-morita-charcoal">Barrio La Morita</span>
-            <span className="text-morita-charcoal/60 leading-snug">
+            <span className="font-bold block text-morita-mulberry font-serif">Barrio La Morita</span>
+            <span className="text-morita-charcoal/70 leading-snug">
               Coordiná entregas, retiros o favores caminando. ¡Menos flete, más comunidad!
             </span>
           </div>
         </div>
       </div>
+
+      <SectionDivider />
 
 
 

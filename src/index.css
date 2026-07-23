@@ -1,30 +1,32 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..800;1,9..144,400..800&family=Public+Sans:ital,wght@0,400..800;1,400..800&family=Karla:ital,wght@0,400..800;1,400..800&display=swap');
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Space Grotesk", sans-serif;
-  --font-serif: "Playfair Display", serif;
+  --font-sans: "Public Sans", "Karla", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Fraunces", serif;
+  --font-serif: "Fraunces", serif;
 
-  --color-morita-beige: #FDFBF7;
-  --color-morita-sand: #F0EBE1;
-  --color-morita-mulberry: #FF8C42;
-  --color-morita-mulberry-dark: #E67E22;
-  --color-morita-terracotta: #FF8C42;
-  --color-morita-terracotta-dark: #E67E22;
-  --color-morita-leaf: #27AE60;
-  --color-morita-leaf-dark: #1E8449;
-  --color-morita-charcoal: #4A3B31;
+  --color-morita-beige: #FBF3E7;
+  --color-morita-sand: #EFE4D2;
+  --color-morita-mulberry: #5B2333;
+  --color-morita-mulberry-dark: #421824;
+  --color-morita-terracotta: #C1663C;
+  --color-morita-terracotta-dark: #A24F2A;
+  --color-morita-leaf: #4B6B4F;
+  --color-morita-leaf-dark: #364F3A;
+  --color-morita-gold: #D4A24C;
+  --color-morita-gold-light: #F7E9C8;
+  --color-morita-charcoal: #2C221E;
   --color-morita-card: #ffffff;
   
   /* Additional Vibrant Palette Specifics */
-  --color-vibrant-orange: #FF8C42;
-  --color-vibrant-orange-hover: #E67E22;
-  --color-vibrant-brown: #4A3B31;
-  --color-vibrant-gray-text: #7D6E63;
-  --color-vibrant-light-gray: #9A8F85;
+  --color-vibrant-orange: #5B2333;
+  --color-vibrant-orange-hover: #421824;
+  --color-vibrant-brown: #2C221E;
+  --color-vibrant-gray-text: #615248;
+  --color-vibrant-light-gray: #A89B8F;
   --color-vibrant-blue: #2D9CDB;
-  --color-vibrant-red: #FF5A5F;
+  --color-vibrant-red: #D9383A;
 }
 
 @layer base {
