@@ -85,39 +85,18 @@ export const api = {
     }
 
     const userMap = new Map<string, User>();
-    // Add mock users unless deleted locally
-    mockUsers.forEach(u => {
-      if (!deletedUserIds.includes(u.id)) userMap.set(u.id, u);
-    });
-    // Add local users unless deleted locally
-    localUsers.forEach(u => {
-      if (!deletedUserIds.includes(u.id)) userMap.set(u.id, u);
-    });
-    // Add Supabase live cloud users ONLY if not in deleted list
-    supabaseUsers.forEach(u => {
-      if (!deletedUserIds.includes(u.id)) userMap.set(u.id, u);
-    });
-
-    // Auto-sync any local users that exist in localStorage but are missing in Supabase
-    if (isSupabaseConfigured() && supabase) {
-      localUsers.forEach(lu => {
-        if (!deletedUserIds.includes(lu.id) && lu.id !== 'guest' && !supabaseUsers.some(su => su.id === lu.id)) {
-          let safeAvatar = lu.avatar || DEFAULT_NEUTRAL_AVATAR;
-          supabase.from('profiles').upsert({
-            id: lu.id,
-            name: lu.name,
-            email: lu.email || '',
-            phone: lu.phone || '',
-            avatar: safeAvatar,
-            zone: lu.zone || 'Barrio La Morita',
-            bio: lu.bio || '',
-            skills: lu.skills || [],
-            is_admin: lu.isAdmin || false,
-            updated_at: new Date().toISOString()
-          }).then(({ error }) => {
-            if (error) console.warn('Background user profile sync warning:', error);
-          });
-        }
+    if (isSupabaseConfigured() && supabaseUsers.length > 0) {
+      // Supabase is authoritative
+      supabaseUsers.forEach(u => {
+        if (!deletedUserIds.includes(u.id)) userMap.set(u.id, u);
+      });
+    } else {
+      // Offline / Local fallback
+      mockUsers.forEach(u => {
+        if (!deletedUserIds.includes(u.id)) userMap.set(u.id, u);
+      });
+      localUsers.forEach(u => {
+        if (!deletedUserIds.includes(u.id)) userMap.set(u.id, u);
       });
     }
 
@@ -346,14 +325,19 @@ export const api = {
 
     if (isSupabaseConfigured() && supabase) {
       try {
-        // Direct deletion of user's publications and profile in Supabase
         await supabase.from('publications').delete().eq('user_id', id);
-        await supabase.from('publications').delete().eq('userId', id);
+      } catch (err) {
+        console.warn('Supabase delete user publications error:', err);
+      }
+      try {
         await supabase.from('requests').delete().eq('requester_id', id);
-        await supabase.from('requests').delete().eq('requesterId', id);
+      } catch (err) {
+        console.warn('Supabase delete user requests error:', err);
+      }
+      try {
         await supabase.from('profiles').delete().eq('id', id);
       } catch (err) {
-        console.warn('Direct Supabase deleteUser catch:', err);
+        console.warn('Supabase delete user profile error:', err);
       }
 
       try {
